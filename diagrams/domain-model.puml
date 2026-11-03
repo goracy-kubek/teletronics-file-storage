@@ -1,0 +1,46 @@
+@startuml domain-model
+hide methods
+
+class User {
+  id
+}
+
+class File {
+  filename
+  visibility : PUBLIC | PRIVATE
+  contentType
+  size
+  uploadDate
+  contentHash
+  status : PENDING | READY
+}
+
+class Tag {
+  name
+}
+
+class DownloadLink {
+  token
+}
+
+class FileContent {
+  bytes
+}
+
+User "1" -- "0..*" File : owns >
+File "0..*" -- "0..5" Tag : tagged with >
+File "1" -- "1" DownloadLink : accessible via >
+File "1" -- "1" FileContent : has >
+
+note bottom of File
+  filename is unique per owner
+  contentHash is unique per owner
+  only the owner can rename or delete
+end note
+
+note bottom of Tag
+  name is case-insensitive
+  (TAG = tAg)
+  created on first use
+end note
+@enduml
