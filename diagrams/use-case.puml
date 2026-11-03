@@ -1,0 +1,73 @@
+@startuml use-cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User" as user
+
+rectangle "STORAGE" {
+  ' --- Upload file ---
+  usecase "Upload file" as UC_UPLOAD
+  usecase "App file identify" as UC_APP_FILETYPE_IDENTIFICATION
+  usecase "Get a file link" as UC_GET_A_FILE_LINK
+  usecase "Duplicate checking" as UC_DUP_CHECK
+
+  ' --- Change filename ---
+  usecase "Change filename" as UC_CHANGE_FILENAME
+
+  ' --- List files ---
+  usecase "List files" as UC_LIST_FILES
+  usecase "Own files" as UC_LIST_OWN_FILES
+  usecase "Public files" as UC_LIST_PUBLIC_FILES
+
+  ' --- Delete own file ---
+  usecase "Delete own files" as UC_DELETE_OWN_FILES
+
+  ' --- Download by link ---
+  usecase "Download by link" as UC_LINK_DOWNLOADING
+}
+
+note bottom of UC_UPLOAD
+  • visibility setting (PUBLIC/PRIVATE)
+  • set of tags (up to 5 per file)
+  • no limit on the file size
+  • file type (optional)
+  • new tag created automatically
+end note
+
+note right of UC_DUP_CHECK
+  Duplicate if:
+  • content is the same
+  • filename already exists
+end note
+
+note as N_LIST
+  • filter by TAG: selected from the list
+    (no tag guessing); TAG and tAg are the same tag
+  • sortable by FILENAME, UPLOAD DATE, TAG,
+    CONTENT TYPE and FILE SIZE
+  • divided into result pages
+    with a defined number of results
+end note
+UC_LIST_OWN_FILES .. N_LIST
+UC_LIST_PUBLIC_FILES .. N_LIST
+
+note right of UC_LINK_DOWNLOADING
+  • all files (PRIVATE and PUBLIC)
+    can be downloaded by the link (no link guessing)
+end note
+
+UC_UPLOAD ..> UC_DUP_CHECK : <<include>>
+UC_UPLOAD ..> UC_GET_A_FILE_LINK : <<include>>
+UC_CHANGE_FILENAME ..> UC_DUP_CHECK : <<include>>\nfilename only
+UC_UPLOAD <.. UC_APP_FILETYPE_IDENTIFICATION : <<extend>>\nif type not provided
+
+UC_LIST_FILES <|-- UC_LIST_OWN_FILES
+UC_LIST_FILES <|-- UC_LIST_PUBLIC_FILES
+
+user --> UC_UPLOAD
+user --> UC_CHANGE_FILENAME
+user --> UC_LIST_FILES
+user --> UC_DELETE_OWN_FILES
+user --> UC_LINK_DOWNLOADING
+
+@enduml
