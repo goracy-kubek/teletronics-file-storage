@@ -1,3 +1,5 @@
 spring:
   application:
     name: storage
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/storage}

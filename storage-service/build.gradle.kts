@@ -2,6 +2,7 @@ plugins {
 	java
 	alias(libs.plugins.spring.boot)
 	alias(libs.plugins.spring.dependency.management)
+	alias(libs.plugins.lombok)
 	id("openapi.generator")
 }
 
@@ -19,22 +20,19 @@ repositories {
 }
 
 dependencies {
-	// Spring
+	// implementation
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation(libs.springdoc.openapi.starter.webmvc.ui)
-
-	// Libs
 	implementation(libs.mapstruct)
-	annotationProcessor(libs.mapstruct.processor)
 	implementation(libs.tika.core)
 
-	compileOnly(libs.lombok)
-	annotationProcessor(libs.lombok)
+	// annotationProcessor
+	annotationProcessor(libs.mapstruct.processor)
 
-	// Test
+	// testImplementation
 	testImplementation(libs.assertj.core)
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-test")
@@ -43,9 +41,9 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-mongodb")
+
+	// testRuntimeOnly
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testCompileOnly(libs.lombok)
-	testAnnotationProcessor(libs.lombok)
 }
 
 tasks.withType<Test> {
