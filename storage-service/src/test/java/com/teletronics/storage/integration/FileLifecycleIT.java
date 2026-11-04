@@ -7,7 +7,6 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -43,7 +42,7 @@ class FileLifecycleIT extends IntegrationTest {
     }
 
     @Test
-    @Disabled("Not implemented")
+//    @Disabled("Not implemented")
     void uploadFetchAndDelete() throws Exception {
         String user = "user-" + UUID.randomUUID();
         byte[] data = "hello".getBytes(UTF_8);

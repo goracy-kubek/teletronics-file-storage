@@ -127,7 +127,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/files/{id}:
+  /api/files/{fileId}:
     patch:
       tags: [files]
       operationId: renameFile

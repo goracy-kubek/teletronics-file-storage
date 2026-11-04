@@ -5,6 +5,7 @@ import com.teletronics.storage.api.model.FilePage;
 import com.teletronics.storage.api.model.FileResponse;
 import com.teletronics.storage.api.model.RenameRequest;
 import com.teletronics.storage.api.model.Visibility;
+import com.teletronics.storage.domain.DownloadableFile;
 import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.exception.UploadInterruptedException;
 import com.teletronics.storage.mapper.FileResponseMapper;
@@ -16,12 +17,12 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -33,7 +34,17 @@ public class FileController implements FilesApi {
 
     @Override
     public ResponseEntity<InputStreamResource> downloadFile(String token) {
-        return null;
+        DownloadableFile download = fileQueryService.download(token);
+        StoredFile file = download.file();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .contentLength(file.size())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(file.filename(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(new InputStreamResource(download.content()));
     }
 
     @Override

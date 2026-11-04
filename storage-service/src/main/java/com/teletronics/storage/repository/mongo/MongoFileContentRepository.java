@@ -1,5 +1,7 @@
 package com.teletronics.storage.repository.mongo;
 
+import com.mongodb.client.gridfs.model.GridFSFile;
+import com.teletronics.storage.exception.ContentNotFoundException;
 import com.teletronics.storage.repository.FileContentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
@@ -9,6 +11,8 @@ import org.bson.types.ObjectId;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -38,5 +42,23 @@ public class MongoFileContentRepository implements FileContentRepository {
         if (ObjectId.isValid(contentId)) {
             gridFsTemplate.delete(query(where("_id").is(new ObjectId(contentId))));
         }
+    }
+
+    @Override
+    public InputStream download(String contentId) {
+        GridFSFile file = findFile(contentId)
+                .orElseThrow(() -> new ContentNotFoundException(contentId));
+        try {
+            return gridFsTemplate.getResource(file).getInputStream();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private Optional<GridFSFile> findFile(String contentId) {
+        return Optional.of(contentId)
+                .filter(ObjectId::isValid)
+                .map(ObjectId::new)
+                .map(id -> gridFsTemplate.find(query(where("_id").is(id))).first());
     }
 }

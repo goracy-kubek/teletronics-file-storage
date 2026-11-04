@@ -1,5 +1,7 @@
 package com.teletronics.storage.repository;
 
+import com.teletronics.storage.exception.ContentNotFoundException;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -25,4 +27,15 @@ public interface FileContentRepository {
      * @param contentId id of the content to delete
      */
     void delete(String contentId);
+
+    /**
+     * Opens stored content for streaming, from its first byte.
+     * The content is read lazily, never loaded whole into memory.
+     * Every call returns a new, independent stream; the caller must close it.
+     *
+     * @param contentId id of the content to open
+     * @throws ContentNotFoundException if there is no content with this id: it was never stored,
+     *                                  was deleted, or the id has an unknown format
+     */
+    InputStream download(String contentId);
 }

@@ -39,6 +39,7 @@ class FileCommandServiceTest {
     @Mock
     private FileContentRepository content;
     @Mock
+    @SuppressWarnings("unused")
     private FileReservationMapper fileReservationMapper;
 
     @InjectMocks
