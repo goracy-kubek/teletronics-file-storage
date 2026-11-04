@@ -7,7 +7,8 @@ import com.teletronics.storage.api.model.RenameRequest;
 import com.teletronics.storage.api.model.Visibility;
 import com.teletronics.storage.exception.UploadInterruptedException;
 import com.teletronics.storage.mapper.FileResponseMapper;
-import com.teletronics.storage.service.FileUploadService;
+import com.teletronics.storage.service.FileCommandService;
+import com.teletronics.storage.service.FileQueryService;
 import com.teletronics.storage.service.command.UploadCommand;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +25,11 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class FileController implements FilesApi {
-    private final FileUploadService fileUploadService;
+    private final FileCommandService fileCommandService;
+    private final FileQueryService fileQueryService;
     private final FileResponseMapper fileResponseMapper;
 
-    @Override
-    public ResponseEntity<Void> deleteFile(String xUserId, String id) {
-        return null;
-    }
+
 
     @Override
     public ResponseEntity<InputStreamResource> downloadFile(String token) {
@@ -44,14 +43,21 @@ public class FileController implements FilesApi {
     }
 
     @Override
-    public ResponseEntity<FilePage> listPublicFiles(
-            String xUserId, @Nullable String tag, String sort, Integer page, Integer size) {
+    public ResponseEntity<FilePage> listPublicFiles(@Nullable String tag, String sort, Integer page, Integer size) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteFile(String xUserId, String fileId) {
         return null;
     }
 
     @Override
     public ResponseEntity<FileResponse> renameFile(
-            String xUserId, String id, RenameRequest renameRequest) {
+            String xUserId,
+            String id,
+            RenameRequest renameRequest
+    ) {
         return null;
     }
 
@@ -72,7 +78,7 @@ public class FileController implements FilesApi {
                 contentType);
 
         try (InputStream content = body.getInputStream()) {
-            var file = fileUploadService.upload(command, content);
+            var file = fileCommandService.upload(command, content);
             return ResponseEntity.status(HttpStatus.CREATED).body(fileResponseMapper.toResponse(file));
         } catch (IOException e) {
             throw new UploadInterruptedException(e);

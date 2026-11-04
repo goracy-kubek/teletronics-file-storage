@@ -4,6 +4,7 @@ import com.teletronics.storage.domain.FileReservation;
 import com.teletronics.storage.domain.StoredContent;
 import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.exception.DuplicateFileException;
+import com.teletronics.storage.exception.OwnedFileNotFoundException;
 
 /**
  * Metadata of stored files. File content is kept separately in {@link FileContentRepository}.
@@ -46,4 +47,13 @@ public interface FileMetadataRepository {
      * @param fileId id of the PENDING record to delete
      */
     void discard(String fileId);
+
+    /**
+     * Deletes the record of a READY file of this owner.
+     *
+     * @return the deleted file, so the caller can delete its content
+     * @throws OwnedFileNotFoundException if the file is not found among the READY files of this owner
+     *                                    (missing, pending or owned by another user)
+     */
+    StoredFile deleteOwned(String fileId, String ownerId);
 }

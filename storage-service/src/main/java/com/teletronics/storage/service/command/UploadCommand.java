@@ -2,12 +2,11 @@ package com.teletronics.storage.service.command;
 
 import com.teletronics.storage.domain.Visibility;
 import com.teletronics.storage.exception.InvalidUploadException;
-import jakarta.annotation.Nullable;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static com.teletronics.storage.utils.TagUtils.normalize;
 
 /**
  * Input of the upload use case. Always valid: invalid input fails at construction.
@@ -48,18 +47,5 @@ public record UploadCommand(
         if (!condition) {
             throw new InvalidUploadException(message);
         }
-    }
-
-    /**
-     * Normalizes tags by trimming them, converting them to lower case, and removing duplicates.
-     *
-     * @param rawTags tags as supplied by the client, or {@code null}
-     * @return an immutable set of normalized tags; empty if {@code rawTags} is {@code null}
-     */
-    private static Set<String> normalize(@Nullable List<String> rawTags) {
-        return Stream.ofNullable(rawTags)
-                .flatMap(List::stream)
-                .map(tag -> tag.trim().toLowerCase(Locale.ROOT))
-                .collect(Collectors.toUnmodifiableSet());
     }
 }

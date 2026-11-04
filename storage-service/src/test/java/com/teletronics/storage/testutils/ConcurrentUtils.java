@@ -1,5 +1,8 @@
 package com.teletronics.storage.testutils;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -9,6 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import lombok.experimental.UtilityClass;
+
+import static org.awaitility.Awaitility.await;
 
 @UtilityClass
 public class ConcurrentUtils {
@@ -29,5 +34,13 @@ public class ConcurrentUtils {
             }
             return results;
         }
+    }
+
+    public static void awaitClockAfter(Instant moment) {
+        await().pollDelay(Duration.ZERO)
+                .pollInterval(Duration.ofMillis(1))
+                .atMost(Duration.ofSeconds(1))
+                .until(() -> Instant.now().truncatedTo(ChronoUnit.MILLIS)
+                        .isAfter(moment.truncatedTo(ChronoUnit.MILLIS)));
     }
 }

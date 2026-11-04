@@ -113,7 +113,6 @@ paths:
       summary: List public files
       description: All PUBLIC files of all users.
       parameters:
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/Tag'
         - $ref: '#/components/parameters/Sort'
         - $ref: '#/components/parameters/Page'

@@ -31,7 +31,7 @@ class FileServiceTest {
     private FileReservationMapper fileReservationMapper;
 
     @InjectMocks
-    private FileUploadService service;
+    private FileCommandService service;
 
     @Test
     void duplicateFilenameIsRejectedBeforeContentIsStored() {

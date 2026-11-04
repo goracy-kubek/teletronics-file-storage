@@ -2,15 +2,13 @@ package com.teletronics.storage.repository;
 
 import com.teletronics.storage.domain.*;
 import com.teletronics.storage.exception.DuplicateFileException;
+import com.teletronics.storage.exception.OwnedFileNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static com.teletronics.storage.testutils.ConcurrentUtils.runConcurrently;
@@ -245,7 +243,6 @@ public abstract class FileMetadataRepositoryContractTest {
         assertThatThrownBy(() -> repo.complete(fileId, secondContent, "token-2-" + owner))
                 .isInstanceOf(IllegalStateException.class);
 
-        // try new file
         StoredFile other = repository().reserve(reservation("other.txt"));
         StoredFile otherCompleted = repository().complete(other.id(), content("second-sha"), "token-3-" + owner);
         assertThat(otherCompleted.sha256()).isEqualTo("second-sha");
@@ -314,6 +311,109 @@ public abstract class FileMetadataRepositoryContractTest {
         repository().discard(pending.id());
 
         assertThat(countRecords(owner)).isZero();
+    }
+
+    @Test
+    void deletesReadyFileOfOwnerAndReturnsIt() {
+        StoredFile file = create("report.pdf");
+        assertThat(countRecords(owner)).isEqualTo(1);
+
+        StoredFile deleted = repository().deleteOwned(file.id(), owner);
+
+        assertThat(deleted.id()).isEqualTo(file.id());
+        assertThat(deleted.contentId()).isEqualTo(file.contentId());
+        assertThat(countRecords(owner)).isZero();
+    }
+
+    @Test
+    void doesNotDeleteFileOfAnotherOwner() {
+        StoredFile file = create("report.pdf");
+        FileMetadataRepository repo = repository();
+        String fileId = file.id();
+        String other = "user-" + UUID.randomUUID();
+
+        assertThatThrownBy(() -> repo.deleteOwned(fileId, other))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + fileId + " not found among files of user " + other);
+
+        assertThat(countRecords(owner)).isEqualTo(1);
+    }
+
+    @Test
+    void doesNotDeletePendingRecord() {
+        StoredFile pending = repository().reserve(reservation("report.pdf"));
+        FileMetadataRepository repo = repository();
+        String pendingId = pending.id();
+
+        assertThatThrownBy(() -> repo.deleteOwned(pendingId, owner))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + pendingId + " not found among files of user " + owner);
+
+        assertThat(countRecords(owner)).isEqualTo(1);
+    }
+
+    @Test
+    void deleteOfUnknownIdFails() {
+        create("report.pdf");
+        FileMetadataRepository repo = repository();
+        String unknownId = UUID.randomUUID().toString();
+
+        assertThatThrownBy(() -> repo.deleteOwned(unknownId, owner))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + unknownId + " not found among files of user " + owner);
+
+        assertThat(countRecords(owner)).isEqualTo(1);
+    }
+
+    @Test
+    void deletedFileFreesFilenameAndContent() {
+        StoredFile file = repository().reserve(reservation("report.pdf"));
+        repository().complete(file.id(), content("same-sha"), "token-1-" + owner);
+        repository().deleteOwned(file.id(), owner);
+
+        StoredFile again = repository().reserve(reservation("report.pdf"));
+        StoredFile completed = repository().complete(again.id(), content("same-sha"), "token-2-" + owner);
+
+        assertThat(completed.status()).isEqualTo(FileStatus.READY);
+    }
+
+    @Test
+    void secondDeleteFails() {
+        StoredFile file = create("report.pdf");
+        FileMetadataRepository repo = repository();
+        String fileId = file.id();
+        repo.deleteOwned(fileId, owner);
+
+        assertThatThrownBy(() -> repo.deleteOwned(fileId, owner))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + fileId + " not found among files of user " + owner);
+    }
+
+    @Test
+    void concurrentDeletesOfSameFileSucceedOnce() throws Exception {
+        int threads = 10;
+        FileMetadataRepository repository = repository();
+        StoredFile file = create("test.pdf");
+        String fileId = file.id();
+
+        List<Boolean> deleted = runConcurrently(threads, () -> {
+            try {
+                repository.deleteOwned(fileId, owner);
+                return true;
+            } catch (OwnedFileNotFoundException _) {
+                return false;
+            }
+        });
+
+        assertThat(deleted).filteredOn(d -> d).hasSize(1);
+        assertThat(deleted).filteredOn(d -> !d).hasSize(threads - 1);
+        assertThat(countRecords(owner)).isZero();
+    }
+
+    private StoredFile create(String filename) {
+        StoredFile pending = repository().reserve(reservation(filename));
+        String unique = UUID.randomUUID().toString();
+        return repository().complete(pending.id(), content("sha-" + unique), "token-" + unique);
     }
 
     private StoredContent content(String sha256) {
