@@ -24,13 +24,26 @@ import java.util.HexFormat;
 
 @Service
 @RequiredArgsConstructor
-public class FileUploadService {
+public class FileCommandService {
     private final FileContentRepository fileContentRepository;
     private final FileMetadataRepository fileMetadataRepository;
     private final FileReservationMapper fileReservationMapper;
 
     private static final int BUFFER_SIZE = 64 * 1024;
 
+    /**
+     * Stores the uploaded content and marks the file as READY.
+     * Reserves the filename with a PENDING record first, streams the content while computing
+     * its size and SHA-256, then completes the record with the content reference and a download token.
+     * If completing fails because the owner already has the same content, both the PENDING record
+     * and the stored content are removed before the exception is rethrown.
+     *
+     * @param uploadCommand validated upload metadata
+     * @param body          content stream; read to the end
+     * @return the completed, READY file
+     * @throws DuplicateFileException     if the owner already has a file with the same filename or content
+     * @throws UploadInterruptedException if the content cannot be read or stored
+     */
     public StoredFile upload(UploadCommand uploadCommand, InputStream body) {
         var reservation = fileReservationMapper.toReservation(uploadCommand);
         var pending = fileMetadataRepository.reserve(reservation);

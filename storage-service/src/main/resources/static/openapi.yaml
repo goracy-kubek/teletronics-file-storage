@@ -221,9 +221,10 @@ components:
         type: string
         minLength: 1
     FileId:
-      name: id
+      name: fileId
       in: path
       required: true
+      description: Id of file which is used to identify a file.
       schema:
         type: string
     Tag:

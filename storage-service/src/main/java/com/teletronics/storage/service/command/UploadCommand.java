@@ -50,6 +50,12 @@ public record UploadCommand(
         }
     }
 
+    /**
+     * Normalizes tags by trimming them, converting them to lower case, and removing duplicates.
+     *
+     * @param rawTags tags as supplied by the client, or {@code null}
+     * @return an immutable set of normalized tags; empty if {@code rawTags} is {@code null}
+     */
     private static Set<String> normalize(@Nullable List<String> rawTags) {
         return Stream.ofNullable(rawTags)
                 .flatMap(List::stream)
