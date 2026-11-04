@@ -1,7 +1,5 @@
 package com.teletronics.storage.domain;
 
-import com.teletronics.storage.api.model.Visibility;
-
 import java.time.Instant;
 import java.util.Set;
 

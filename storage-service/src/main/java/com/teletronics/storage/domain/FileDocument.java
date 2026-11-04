@@ -1,6 +1,5 @@
 package com.teletronics.storage.domain;
 
-import com.teletronics.storage.api.model.Visibility;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
