@@ -2,10 +2,10 @@ package com.teletronics.storage.service;
 
 import com.teletronics.storage.domain.Visibility;
 import com.teletronics.storage.exception.DuplicateFileException;
+import com.teletronics.storage.mapper.FileReservationMapper;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileMetadataRepository;
 import com.teletronics.storage.service.command.UploadCommand;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,12 +27,13 @@ class FileServiceTest {
     private FileMetadataRepository metadata;
     @Mock
     private FileContentRepository content;
+    @Mock
+    private FileReservationMapper fileReservationMapper;
 
     @InjectMocks
     private FileUploadService service;
 
     @Test
-    @Disabled("Future implementation")
     void duplicateFilenameIsRejectedBeforeContentIsStored() {
         when(metadata.reserve(any()))
                 .thenThrow(new DuplicateFileException("filename already exists"));

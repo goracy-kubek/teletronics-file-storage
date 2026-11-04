@@ -5,8 +5,9 @@ import com.teletronics.storage.domain.FileReservation;
 import com.teletronics.storage.domain.StoredFile;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 
-@Mapper
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface FileDocumentMapper {
 
     StoredFile toDomain(FileDocument document);

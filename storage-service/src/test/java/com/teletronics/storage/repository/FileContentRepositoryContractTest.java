@@ -6,8 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Random;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.*;
 
 public abstract class FileContentRepositoryContractTest {
 
@@ -36,15 +35,6 @@ public abstract class FileContentRepositoryContractTest {
         String id = repository().store(new ByteArrayInputStream(data));
 
         assertThat(read(id)).isEqualTo(data);
-    }
-
-    // Let it be like this. To not add some extra logic in the stream processing
-    @Test
-    void acceptsEmptyContent() throws Exception {
-        String id = repository().store(new ByteArrayInputStream(new byte[0]));
-
-        assertThat(id).isNotBlank();
-        assertThat(read(id)).isEmpty();
     }
 
     @Test

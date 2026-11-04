@@ -1,22 +1,75 @@
 package com.teletronics.storage.service;
 
+import com.teletronics.storage.domain.StoredContent;
 import com.teletronics.storage.domain.StoredFile;
+import com.teletronics.storage.exception.DuplicateFileException;
+import com.teletronics.storage.exception.InvalidUploadException;
+import com.teletronics.storage.exception.UploadInterruptedException;
+import com.teletronics.storage.helper.CountingInputStream;
+import com.teletronics.storage.mapper.FileReservationMapper;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileMetadataRepository;
 import com.teletronics.storage.service.command.UploadCommand;
+import com.teletronics.storage.utils.FileUtils;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Service;
-
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 @Service
 @RequiredArgsConstructor
 public class FileUploadService {
     private final FileContentRepository fileContentRepository;
     private final FileMetadataRepository fileMetadataRepository;
+    private final FileReservationMapper fileReservationMapper;
+
+    private static final int BUFFER_SIZE = 64 * 1024;
 
     public StoredFile upload(UploadCommand uploadCommand, InputStream body) {
-        throw new NotImplementedException();
+        var reservation = fileReservationMapper.toReservation(uploadCommand);
+        var pending = fileMetadataRepository.reserve(reservation);
+        var content = storeContent(uploadCommand, body, pending);
+
+        try {
+            return fileMetadataRepository.complete(pending.id(), content, FileUtils.newDownloadToken());
+        } catch (DuplicateFileException e) {
+            fileMetadataRepository.discard(pending.id());
+            fileContentRepository.delete(content.contentId());
+            throw e;
+        }
+    }
+
+    private StoredContent storeContent(UploadCommand command, InputStream body, StoredFile pending) {
+        try (
+                var buffered = new BufferedInputStream(body, BUFFER_SIZE);
+                var counting = new CountingInputStream(buffered)
+        ) {
+            FileUtils.requireNotEmpty(buffered);
+
+            var contentType = FileUtils.detectContentType(command.contentType(), buffered, command.filename());
+            var sha256 = MessageDigest.getInstance("SHA-256");
+            var contentId = fileContentRepository.store(new DigestInputStream(counting, sha256));
+
+            return new StoredContent(
+                    contentId,
+                    HexFormat.of().formatHex(sha256.digest()),
+                    counting.getCount(),
+                    contentType
+            );
+        } catch (IOException | UncheckedIOException e) {
+            fileMetadataRepository.discard(pending.id());
+            throw new UploadInterruptedException(e);
+        } catch (InvalidUploadException e) {
+            fileMetadataRepository.discard(pending.id());
+            throw e;
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
