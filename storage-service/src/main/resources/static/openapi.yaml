@@ -12,17 +12,13 @@ info:
     or on the local disk.
 
 tags:
-  - name: upload
-    description: "Use case: Upload file (includes duplicate checking and download link; extended by file type identification)"
   - name: files
-    description: "Use cases: Change filename, List files (own / public), Delete own files"
-  - name: download
-    description: "Use case: Download by link"
+    description: "Use cases: Upload file, Change filename, List files (own / public), Delete own files, Download by link"
 
 paths:
   /api/files:
     post:
-      tags: [upload]
+      tags: [files]
       operationId: uploadFile
       summary: Upload a file
       description: |
@@ -138,7 +134,7 @@ paths:
       operationId: renameFile
       summary: Change filename
       description: |
-        Changes only the filename; the content is not re-uploaded.
+        Changes only the filename;
         The new filename must not be used by another file of the same user.
       parameters:
         - $ref: '#/components/parameters/UserId'
@@ -181,7 +177,7 @@ paths:
 
   /download/{token}:
     get:
-      tags: [download]
+      tags: [files]
       operationId: downloadFile
       summary: Download by link
       description: |
@@ -189,7 +185,6 @@ paths:
         grants access, no ownership or visibility check is made.
         The token is random and non-guessable. Unknown tokens always return 404.
       parameters:
-        - $ref: '#/components/parameters/UserId'
         - name: token
           in: path
           required: true
@@ -342,7 +337,7 @@ components:
 
     ProblemDetail:
       type: object
-      description: Error body.
+      description: Error body (RFC 7807).
       properties:
         type:
           type: string
