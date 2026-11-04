@@ -1,11 +1,13 @@
 package com.teletronics.storage.mapper;
 
+import com.teletronics.storage.api.model.FilePage;
 import com.teletronics.storage.api.model.FileResponse;
 import com.teletronics.storage.domain.StoredFile;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
+import org.springframework.data.domain.Page;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -33,4 +35,7 @@ public interface FileResponseMapper {
     default List<String> sortedTags(Set<String> tags) {
         return tags.stream().sorted().toList();
     }
+
+    @Mapping(target = "page", source = "number")
+    FilePage toPage(Page<StoredFile> page);
 }

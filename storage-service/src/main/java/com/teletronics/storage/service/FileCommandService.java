@@ -4,6 +4,7 @@ import com.teletronics.storage.domain.StoredContent;
 import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.exception.DuplicateFileException;
 import com.teletronics.storage.exception.InvalidUploadException;
+import com.teletronics.storage.exception.OwnedFileNotFoundException;
 import com.teletronics.storage.exception.UploadInterruptedException;
 import com.teletronics.storage.helper.CountingInputStream;
 import com.teletronics.storage.mapper.FileReservationMapper;
@@ -30,6 +31,22 @@ public class FileCommandService {
     private final FileReservationMapper fileReservationMapper;
 
     private static final int BUFFER_SIZE = 64 * 1024;
+
+    /**
+     * Deletes a file of the owner: first its record, then its content.
+     * The record goes first on purpose. If deleting the content then fails, what remains is an invisible
+     * orphaned object, which is harmless. The other order could leave a visible record pointing at
+     * missing content.
+     *
+     * @param ownerId id of the user who owns the file
+     * @param fileId  id of the file to delete
+     * @throws OwnedFileNotFoundException if the file is not found among the READY files of this owner
+     *                                    (missing, still uploading or owned by another user)
+     */
+    public void deleteFile(String ownerId, String fileId) {
+        StoredFile deleted = fileMetadataRepository.deleteOwned(fileId, ownerId);
+        fileContentRepository.delete(deleted.contentId());
+    }
 
     /**
      * Stores the uploaded content and marks the file as READY.

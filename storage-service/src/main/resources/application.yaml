@@ -4,10 +4,6 @@ spring:
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017/storage}
 
-lombok:
-  fieldNameConstants:
-    uppercase: true
-
 storage:
   query:
     sortable-properties:

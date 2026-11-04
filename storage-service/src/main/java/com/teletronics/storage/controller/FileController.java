@@ -5,15 +5,17 @@ import com.teletronics.storage.api.model.FilePage;
 import com.teletronics.storage.api.model.FileResponse;
 import com.teletronics.storage.api.model.RenameRequest;
 import com.teletronics.storage.api.model.Visibility;
+import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.exception.UploadInterruptedException;
 import com.teletronics.storage.mapper.FileResponseMapper;
 import com.teletronics.storage.service.FileCommandService;
 import com.teletronics.storage.service.FileQueryService;
 import com.teletronics.storage.service.command.UploadCommand;
-import jakarta.validation.constraints.Size;
+import com.teletronics.storage.utils.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,8 +31,6 @@ public class FileController implements FilesApi {
     private final FileQueryService fileQueryService;
     private final FileResponseMapper fileResponseMapper;
 
-
-
     @Override
     public ResponseEntity<InputStreamResource> downloadFile(String token) {
         return null;
@@ -38,18 +38,31 @@ public class FileController implements FilesApi {
 
     @Override
     public ResponseEntity<FilePage> listOwnFiles(
-            String xUserId, @Nullable String tag, String sort, Integer page, Integer size) {
-        return null;
+            String xUserId,
+            @Nullable String tag,
+            String sort,
+            Integer page,
+            Integer size
+    ) {
+        Page<StoredFile> files = fileQueryService.listOwnFiles(xUserId, tag, PageUtils.pageableOf(sort, page, size));
+        return ResponseEntity.ok(fileResponseMapper.toPage(files));
     }
 
     @Override
-    public ResponseEntity<FilePage> listPublicFiles(@Nullable String tag, String sort, Integer page, Integer size) {
-        return null;
+    public ResponseEntity<FilePage> listPublicFiles(
+            @Nullable String tag,
+            String sort,
+            Integer page,
+            Integer size
+    ) {
+        Page<StoredFile> files = fileQueryService.listPublicFiles(tag, PageUtils.pageableOf(sort, page, size));
+        return ResponseEntity.ok(fileResponseMapper.toPage(files));
     }
 
     @Override
     public ResponseEntity<Void> deleteFile(String xUserId, String fileId) {
-        return null;
+        fileCommandService.deleteFile(xUserId, fileId);
+        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -67,7 +80,7 @@ public class FileController implements FilesApi {
             String filename,
             Visibility visibility,
             InputStreamResource body,
-            @Nullable List<@Size(min = 1, max = 50) String> tags,
+            @Nullable List<String> tags,
             @Nullable String contentType
     ) {
         UploadCommand command = new UploadCommand(
