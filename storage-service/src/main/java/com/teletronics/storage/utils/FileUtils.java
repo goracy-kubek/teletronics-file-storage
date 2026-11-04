@@ -48,6 +48,7 @@ public final class FileUtils {
         content.mark(1);
         boolean empty = content.read() == -1;
         content.reset();
+
         if (empty) {
             throw new InvalidUploadException("file must not be empty");
         }

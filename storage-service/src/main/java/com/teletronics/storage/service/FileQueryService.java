@@ -28,7 +28,7 @@ public class FileQueryService {
     public DownloadableFile download(String token) {
         return fileQueryRepository.findReadyByToken(token)
                 .map(file -> new DownloadableFile(file, fileContentRepository.download(file.contentId())))
-                .orElseThrow(() -> new DownloadLinkNotFoundException(token));
+                .orElseThrow(DownloadLinkNotFoundException::new);
     }
 
     /**
