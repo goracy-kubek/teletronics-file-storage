@@ -79,10 +79,11 @@ public class FileController implements FilesApi {
     @Override
     public ResponseEntity<FileResponse> renameFile(
             String xUserId,
-            String id,
+            String fileId,
             RenameRequest renameRequest
     ) {
-        return null;
+        StoredFile renamed = fileCommandService.renameFile(xUserId, fileId, renameRequest.getFilename());
+        return ResponseEntity.ok(fileResponseMapper.toResponse(renamed));
     }
 
     @Override

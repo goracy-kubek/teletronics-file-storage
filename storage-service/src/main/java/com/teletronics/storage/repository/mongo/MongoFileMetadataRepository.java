@@ -92,4 +92,25 @@ public class MongoFileMetadataRepository implements FileMetadataRepository {
                 .map(fileDocumentMapper::toDomain)
                 .orElseThrow(() -> new OwnedFileNotFoundException(fileId, ownerId));
     }
+
+    @Override
+    public StoredFile rename(String fileId, String ownerId, String newFilename) {
+        try {
+            return Optional.ofNullable(findAndRename(fileId, ownerId, newFilename))
+                    .map(fileDocumentMapper::toDomain)
+                    .orElseThrow(() -> new OwnedFileNotFoundException(fileId, ownerId));
+        } catch (DuplicateKeyException e) {
+            log.debug("Filename already exists: fileId={}", fileId, e);
+            throw new DuplicateFileException("filename already exists");
+        }
+    }
+
+    private FileDocument findAndRename(String fileId, String ownerId, String newFilename) {
+        return mongoTemplate.findAndModify(
+                readyRecordOf(fileId, ownerId),
+                new Update().set(Fields.filename, newFilename),
+                FindAndModifyOptions.options().returnNew(true),
+                FileDocument.class
+        );
+    }
 }

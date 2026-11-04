@@ -33,6 +33,21 @@ public class FileCommandService {
     private static final int BUFFER_SIZE = 64 * 1024;
 
     /**
+     * Changes the filename of a file of the owner. Only the record changes, the content is not touched.
+     *
+     * @param ownerId     id of the user who owns the file
+     * @param fileId      id of the file to rename
+     * @param newFilename the new filename, validated by the API layer
+     * @return the renamed file
+     * @throws OwnedFileNotFoundException if the file is not found among the READY files of this owner
+     *                                    (missing, still uploading or owned by another user)
+     * @throws DuplicateFileException     if the owner already has a file with this filename
+     */
+    public StoredFile renameFile(String ownerId, String fileId, String newFilename) {
+        return fileMetadataRepository.rename(fileId, ownerId, newFilename);
+    }
+
+    /**
      * Deletes a file of the owner: first its record, then its content.
      * The record goes first on purpose. If deleting the content then fails, what remains is an invisible
      * orphaned object, which is harmless. The other order could leave a visible record pointing at

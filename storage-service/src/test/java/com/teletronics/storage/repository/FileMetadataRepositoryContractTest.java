@@ -10,6 +10,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.teletronics.storage.testutils.ConcurrentUtils.runConcurrently;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -408,6 +410,131 @@ public abstract class FileMetadataRepositoryContractTest {
         assertThat(deleted).filteredOn(d -> d).hasSize(1);
         assertThat(deleted).filteredOn(d -> !d).hasSize(threads - 1);
         assertThat(countRecords(owner)).isZero();
+    }
+
+    @Test
+    void renamesReadyFileAndKeepsEverythingElse() {
+        StoredFile file = create("old.pdf");
+
+        StoredFile renamed = repository().rename(file.id(), owner, "new.pdf");
+
+        assertThat(renamed.filename()).isEqualTo("new.pdf");
+        assertThat(renamed.id()).isEqualTo(file.id());
+        assertThat(renamed.ownerId()).isEqualTo(owner);
+        assertThat(renamed.status()).isEqualTo(FileStatus.READY);
+        assertThat(renamed.contentId()).isEqualTo(file.contentId());
+        assertThat(renamed.sha256()).isEqualTo(file.sha256());
+        assertThat(renamed.downloadToken()).isEqualTo(file.downloadToken());
+        assertThat(countRecords(owner)).isEqualTo(1);
+    }
+
+    @Test
+    void renameFreesOldFilenameAndTakesNewOne() {
+        StoredFile file = create("old.pdf");
+        repository().rename(file.id(), owner, "new.pdf");
+
+        StoredFile reusedOld = repository().reserve(reservation("old.pdf"));
+        FileMetadataRepository repo = repository();
+        FileReservation takenNew = reservation("new.pdf");
+
+        assertThat(reusedOld.filename()).isEqualTo("old.pdf");
+        assertThatThrownBy(() -> repo.reserve(takenNew))
+                .isInstanceOf(DuplicateFileException.class);
+    }
+
+    @Test
+    void renameToFilenameOfAnotherFileOfSameOwnerFails() {
+        StoredFile first = create("first.pdf");
+        create("second.pdf");
+        FileMetadataRepository repo = repository();
+        String firstId = first.id();
+
+        assertThatThrownBy(() -> repo.rename(firstId, owner, "second.pdf"))
+                .isInstanceOf(DuplicateFileException.class)
+                .hasMessage("filename already exists");
+
+        // the failed rename changed nothing: the old name is still taken
+        FileReservation oldName = reservation("first.pdf");
+        assertThatThrownBy(() -> repo.reserve(oldName))
+                .isInstanceOf(DuplicateFileException.class);
+    }
+
+    @Test
+    void renameToFilenameUsedByAnotherOwnerIsAllowed() {
+        String otherOwner = "user-" + UUID.randomUUID();
+        repository().reserve(new FileReservation(otherOwner, "shared.pdf", Visibility.PUBLIC, Set.of()));
+        StoredFile mine = create("mine.pdf");
+
+        StoredFile renamed = repository().rename(mine.id(), owner, "shared.pdf");
+
+        assertThat(renamed.filename()).isEqualTo("shared.pdf");
+    }
+
+    @Test
+    void renameToOwnCurrentFilenameSucceeds() {
+        StoredFile file = create("same.pdf");
+
+        StoredFile renamed = repository().rename(file.id(), owner, "same.pdf");
+
+        assertThat(renamed.filename()).isEqualTo("same.pdf");
+    }
+
+    @Test
+    void doesNotRenameFileOfAnotherOwner() {
+        StoredFile file = create("report.pdf");
+        FileMetadataRepository repo = repository();
+        String fileId = file.id();
+        String other = "user-" + UUID.randomUUID();
+
+        assertThatThrownBy(() -> repo.rename(fileId, other, "stolen.pdf"))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + fileId + " not found among files of user " + other);
+
+        // still reachable under the old name by the real owner
+        assertThat(repo.rename(fileId, owner, "still-mine.pdf").filename()).isEqualTo("still-mine.pdf");
+    }
+
+    @Test
+    void doesNotRenamePendingRecord() {
+        StoredFile pending = repository().reserve(reservation("report.pdf"));
+        FileMetadataRepository repo = repository();
+        String pendingId = pending.id();
+
+        assertThatThrownBy(() -> repo.rename(pendingId, owner, "other.pdf"))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + pendingId + " not found among files of user " + owner);
+    }
+
+    @Test
+    void renameOfUnknownIdFails() {
+        create("report.pdf");
+        FileMetadataRepository repo = repository();
+        String unknownId = UUID.randomUUID().toString();
+
+        assertThatThrownBy(() -> repo.rename(unknownId, owner, "other.pdf"))
+                .isInstanceOf(OwnedFileNotFoundException.class)
+                .hasMessage("File " + unknownId + " not found among files of user " + owner);
+    }
+
+    @Test
+    void concurrentRenamesToSameFilenameSucceedOnce() throws Exception {
+        int threads = 10;
+        FileMetadataRepository repository = repository();
+        Queue<String> ids = IntStream.range(0, threads)
+                .mapToObj(i -> create("copy-" + i + ".txt").id())
+                .collect(Collectors.toCollection(ConcurrentLinkedQueue::new));
+
+        List<Boolean> renamed = runConcurrently(threads, () -> {
+            try {
+                repository.rename(ids.poll(), owner, "target.txt");
+                return true;
+            } catch (DuplicateFileException _) {
+                return false;
+            }
+        });
+
+        assertThat(renamed).filteredOn(r -> r).hasSize(1);
+        assertThat(renamed).filteredOn(r -> !r).hasSize(threads - 1);
     }
 
     private StoredFile create(String filename) {

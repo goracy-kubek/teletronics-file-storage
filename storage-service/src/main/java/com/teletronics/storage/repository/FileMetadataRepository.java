@@ -56,4 +56,13 @@ public interface FileMetadataRepository {
      *                                    (missing, pending or owned by another user)
      */
     StoredFile deleteOwned(String fileId, String ownerId);
+
+    /**
+     * Changes the filename of a READY file of this owner, in one atomic operation.
+     *
+     * @return the updated file
+     * @throws OwnedFileNotFoundException if the file is not found among the READY files of this owner
+     * @throws DuplicateFileException     if the owner already has a file with this filename
+     */
+    StoredFile rename(String fileId, String ownerId, String newFilename);
 }
