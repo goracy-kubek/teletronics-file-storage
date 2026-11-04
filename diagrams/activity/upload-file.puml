@@ -1,0 +1,49 @@
+@startuml upload-service
+title FileUploadService.upload(command, body)
+
+start
+:Receive valid UploadCommand;
+
+:Reserve filename:
+insert record with status PENDING;
+note right
+  Unique index {ownerId, filename}.
+end note
+if (Filename already exists?) then (yes)
+  :throw DuplicateFileException
+  "filename already exists";
+  stop
+endif
+
+if (contentType provided?) then (no)
+  :Detect content type
+  from the first 8 KB (Tika);
+endif
+
+:Stream content to storage,
+computing SHA-256 and size on the fly;
+if (Stream interrupted?) then (yes)
+  :Delete PENDING record;
+  :throw UploadInterruptedException;
+  stop
+endif
+
+:Generate random download token;
+:Complete record in one update:
+SHA-256, size, content type,
+download token, status READY;
+note right
+  Unique partial index
+  {ownerId, sha256}.
+end note
+if (Same content already uploaded by this user?) then (yes)
+  :Delete stored content;
+  :Delete PENDING record;
+  :throw DuplicateFileException
+  "same content already uploaded";
+  stop
+endif
+
+:return StoredFile;
+stop
+@enduml
