@@ -1,3 +1,5 @@
+name: teletronics-file-storage
+
 services:
   mongo:
     image: mongo:7.0
