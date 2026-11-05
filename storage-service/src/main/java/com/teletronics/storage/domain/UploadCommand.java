@@ -16,8 +16,6 @@ import static com.teletronics.storage.utils.TagUtils.normalize;
  * @param visibility  whether the file will appear in the public list; required
  * @param tags        normalized tags, at most 5 unique ones, none blank; empty if {@code null} is passed
  * @param contentType MIME type provided by the client, or {@code null} to detect it from the content
- * @throws InvalidUploadException if the filename is blank, the visibility is missing, a tag is blank,
- *                                there are more than 5 unique tags or the content type is not a valid MIME type
  */
 public record UploadCommand(
         String ownerId,

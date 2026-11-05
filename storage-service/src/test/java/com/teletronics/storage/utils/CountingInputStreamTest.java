@@ -1,6 +1,7 @@
 package com.teletronics.storage.utils;
 
 import com.teletronics.storage.helper.CountingInputStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -8,9 +9,11 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayName("Counting input stream")
 class CountingInputStreamTest {
 
     @Test
+    @DisplayName("A single-byte read is counted")
     void singleByteReadIsCounted() throws IOException {
         CountingInputStream in = new CountingInputStream(new ByteArrayInputStream(new byte[]{10, 20, 30}));
 
@@ -21,6 +24,7 @@ class CountingInputStreamTest {
     }
 
     @Test
+    @DisplayName("Every single-byte read is counted")
     @SuppressWarnings("unused")
     void everySingleByteReadIsCounted() throws IOException {
         CountingInputStream in = new CountingInputStream(new ByteArrayInputStream(new byte[]{10, 20, 30}));
@@ -33,6 +37,7 @@ class CountingInputStreamTest {
     }
 
     @Test
+    @DisplayName("End of stream is not counted")
     void endOfStreamIsNotCounted() throws IOException {
         CountingInputStream in = new CountingInputStream(new ByteArrayInputStream(new byte[0]));
 
@@ -43,6 +48,7 @@ class CountingInputStreamTest {
     }
 
     @Test
+    @DisplayName("Reading past the end keeps the count")
     void readingPastTheEndKeepsTheCount() throws IOException {
         CountingInputStream in = new CountingInputStream(new ByteArrayInputStream(new byte[]{1, 2}));
         in.readNBytes(2);
@@ -54,6 +60,7 @@ class CountingInputStreamTest {
     }
 
     @Test
+    @DisplayName("A byte with value 255 is not mistaken for end of stream")
     void byteWithValue255IsNotMistakenForEndOfStream() throws IOException {
         // read() returns 0..255 for data and -1 only at the end, so 0xFF must be counted
         CountingInputStream in = new CountingInputStream(new ByteArrayInputStream(new byte[]{(byte) 0xFF}));

@@ -9,6 +9,7 @@ import com.teletronics.storage.mapper.FileReservationMapper;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileMetadataRepository;
 import com.teletronics.storage.domain.UploadCommand;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -45,6 +46,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("File command service")
 class FileCommandServiceTest {
 
     private static final String OWNER = "user-1";
@@ -63,6 +65,7 @@ class FileCommandServiceTest {
     private FileCommandService service;
 
     @Test
+    @DisplayName("Upload with a taken filename is rejected before any content is stored")
     void duplicateFilenameIsRejectedBeforeContentIsStored() {
         when(metadata.reserve(any()))
                 .thenThrow(new DuplicateFileException("filename already exists"));
@@ -85,6 +88,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Delete removes the record first, then the content")
     void deleteRemovesRecordThenContent() {
         when(metadata.deleteOwned(FILE_ID, OWNER)).thenReturn(create());
 
@@ -96,6 +100,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Delete of a missing file does not touch any content")
     void deleteOfMissingFileLeavesContentAlone() {
         when(metadata.deleteOwned(FILE_ID, OWNER)).thenThrow(new OwnedFileNotFoundException(FILE_ID, OWNER));
 
@@ -106,6 +111,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Rename is delegated to the repository and its result is returned")
     void renameDelegatesToRepositoryAndReturnsItsResult() {
         StoredFile renamed = create("new.txt");
         when(metadata.rename(FILE_ID, OWNER, "new.txt")).thenReturn(renamed);
@@ -117,6 +123,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Rename of a missing file fails")
     void renameOfMissingFileFails() {
         when(metadata.rename(FILE_ID, OWNER, "new.txt"))
                 .thenThrow(new OwnedFileNotFoundException(FILE_ID, OWNER));
@@ -126,6 +133,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Rename to a taken filename fails")
     void renameToTakenFilenameFails() {
         when(metadata.rename(FILE_ID, OWNER, "taken.txt"))
                 .thenThrow(new DuplicateFileException("filename already exists"));
@@ -136,6 +144,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Upload interrupted while storing discards the reservation and is never completed")
     void interruptedWhileStoringDiscardsReservationAndNeverCompletes() throws IOException {
         when(metadata.reserve(any())).thenReturn(pending());
         when(content.store(any())).thenThrow(new IOException("connection reset"));
@@ -152,6 +161,7 @@ class FileCommandServiceTest {
     }
 
     @ParameterizedTest(name = "stream fails after {0} bytes")
+    @DisplayName("Upload interrupted before storing discards the reservation")
     @ValueSource(ints = {0, 1})
     @SuppressWarnings("resource")
     void interruptedBeforeStoringDiscardsReservation(int deliverableBytes) {
@@ -169,6 +179,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Empty upload discards the reservation and is rejected")
     void emptyContentDiscardsReservationAndRethrows() {
         when(metadata.reserve(any())).thenReturn(pending());
         UploadCommand command = command("text/plain");
@@ -183,6 +194,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Upload of duplicate content discards the reservation and deletes the stored content")
     void duplicateContentDiscardsReservationAndDeletesStoredContent() throws IOException {
         when(metadata.reserve(any())).thenReturn(pending());
         when(content.store(any())).thenAnswer(inv -> {
@@ -204,6 +216,7 @@ class FileCommandServiceTest {
     }
 
     @Test
+    @DisplayName("Missing SHA-256 algorithm is reported as IllegalStateException")
     void missingSha256AlgorithmIsReportedAsIllegalState() {
         when(metadata.reserve(any())).thenReturn(pending());
         UploadCommand command = command("text/plain");

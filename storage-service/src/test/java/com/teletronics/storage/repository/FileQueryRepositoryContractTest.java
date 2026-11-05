@@ -5,6 +5,7 @@ import com.teletronics.storage.domain.StoredContent;
 import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.domain.Visibility;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -23,6 +24,7 @@ import java.util.stream.IntStream;
 import static com.teletronics.storage.testutils.ConcurrentUtils.awaitClockAfter;
 import static org.assertj.core.api.Assertions.*;
 
+@DisplayName("File query repository contract")
 public abstract class FileQueryRepositoryContractTest {
 
     private static final String TEXT = "text/plain";
@@ -46,6 +48,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Finds a READY file by its download token")
     void findsReadyFileByToken() {
         StoredFile file = create(owner, "report.pdf", Visibility.PRIVATE, 10, TEXT);
 
@@ -56,11 +59,13 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Unknown download token gives an empty result")
     void unknownTokenGivesEmpty() {
         assertThat(queries().findReadyByToken("no-such-token-" + owner)).isEmpty();
     }
 
     @Test
+    @DisplayName("Own list has PUBLIC and PRIVATE files, and only those of the owner")
     void ownListHasBothVisibilitiesAndOnlyOwnerFiles() {
         create(owner, "public.txt", Visibility.PUBLIC, 10, TEXT);
         create(owner, "private.txt", Visibility.PRIVATE, 10, TEXT);
@@ -72,6 +77,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Files still being uploaded are not listed")
     void uploadsInProgressAreInvisible() {
         metadata().reserve(new FileReservation(owner, "pending.txt", Visibility.PUBLIC, Set.of()));
         create(owner, "ready.txt", Visibility.PUBLIC, 10, TEXT);
@@ -82,6 +88,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Tag filter matches the whole tag and ignores case")
     void tagFilterIsExactAndCaseInsensitive() {
         String work = tag + "-work";
         create(owner, "tagged.txt", Visibility.PUBLIC, 10, TEXT, work);
@@ -98,6 +105,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Unknown tag gives an empty page")
     void unknownTagGivesEmptyPage() {
         create(owner, "file.txt", Visibility.PUBLIC, 10, TEXT);
 
@@ -108,6 +116,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Pages do not overlap even when sort values are equal")
     void pagesDoNotOverlapEvenWhenSortValuesAreEqual() {
         List<String> created = IntStream.range(0, 7)
                 .mapToObj(i -> "file-" + i + ".txt")
@@ -127,6 +136,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by size")
     void sortsBySize() {
         create(owner, "medium.txt", Visibility.PUBLIC, 20, TEXT);
         create(owner, "small.txt", Visibility.PUBLIC, 10, TEXT);
@@ -139,6 +149,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by filename")
     void sortsByFilename() {
         create(owner, "banana.txt", Visibility.PUBLIC, 1, TEXT);
         create(owner, "apple.txt", Visibility.PUBLIC, 1, TEXT);
@@ -151,6 +162,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Filename sort is case-sensitive")
     void filenameSortIsCaseSensitive() {
         create(owner, "apple.txt", Visibility.PUBLIC, 1, TEXT);
         create(owner, "Zebra.txt", Visibility.PUBLIC, 1, TEXT);
@@ -159,6 +171,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by content type")
     void sortsByContentType() {
         create(owner, "text.txt", Visibility.PUBLIC, 1, TEXT);
         create(owner, "doc.pdf", Visibility.PUBLIC, 1, "application/pdf");
@@ -171,6 +184,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by tags")
     void sortsByTags() {
         create(owner, "b.txt", Visibility.PUBLIC, 1, TEXT, "b");
         create(owner, "az.txt", Visibility.PUBLIC, 1, TEXT, "a", "z");
@@ -183,6 +197,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by upload date")
     void sortsByUploadDate() {
         StoredFile first = create(owner, "first.txt", Visibility.PUBLIC, 1, TEXT);
         awaitClockAfter(first.uploadDate());
@@ -197,6 +212,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sorts by two fields")
     void sortsByTwoFields() {
         create(owner, "b.txt", Visibility.PUBLIC, 20, TEXT);
         create(owner, "a.txt", Visibility.PUBLIC, 10, TEXT);
@@ -208,6 +224,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Sort is applied before paging")
     void sortIsAppliedBeforePaging() {
         IntStream.rangeClosed(1, 5).forEach(i ->
                 create(owner, "s" + i * 10 + ".txt", Visibility.PUBLIC, i * 10L, TEXT));
@@ -218,6 +235,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rejects sorting by a property that is not allowed")
     void rejectsSortByNonWhitelistedProperty() {
         FileQueryRepository repo = queries();
         Pageable bySecret = PageRequest.of(0, 10, Sort.by("ownerId"));
@@ -228,6 +246,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @ParameterizedTest
+    @DisplayName("Accepts sorting by every allowed property: {0}")
     @ValueSource(strings = {"filename", "uploadDate", "contentType", "size", "tags"})
     void acceptsEveryWhitelistedSortProperty(String property) {
         FileQueryRepository repo = queries();
@@ -237,6 +256,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Public list has PUBLIC files of all users and never PRIVATE ones")
     void publicListHasPublicFilesOfAllUsersAndNeverPrivate() {
         create(owner, "mine-public.txt", Visibility.PUBLIC, 10, TEXT, tag);
         create(owner, "mine-private.txt", Visibility.PRIVATE, 10, TEXT, tag);
@@ -249,6 +269,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Public list supports the tag filter")
     void publicListSupportsTagFilter() {
         String other = tag + "-other";
         create(owner, "tagged.txt", Visibility.PUBLIC, 10, TEXT, other);
@@ -260,6 +281,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Public list is sortable")
     void publicListIsSortable() {
         create(owner, "large.txt", Visibility.PUBLIC, 20, TEXT, tag);
         create(owner, "small.txt", Visibility.PUBLIC, 10, TEXT, tag);
@@ -270,6 +292,7 @@ public abstract class FileQueryRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Public list rejects sorting by a property that is not allowed")
     void publicListRejectsNonWhitelistedSort() {
         FileQueryRepository repo = queries();
         Pageable bySecret = PageRequest.of(0, 10, Sort.by("sha256"));

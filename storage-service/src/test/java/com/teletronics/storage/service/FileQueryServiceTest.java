@@ -3,6 +3,7 @@ package com.teletronics.storage.service;
 import com.teletronics.storage.domain.StoredFile;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileQueryRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("File query service")
 class FileQueryServiceTest {
 
     private static final String TOKEN = "token-1";
@@ -53,6 +55,7 @@ class FileQueryServiceTest {
     private FileQueryService service;
 
     @Test
+    @DisplayName("Public list is delegated to the repository with the tag and the pageable")
     void listPublicFilesDelegatesWithTagAndPageable() {
         Pageable pageable = PageRequest.of(2, 5, Sort.by("size"));
         Page<StoredFile> expected = new PageImpl<>(List.of(), pageable, 0);
@@ -64,6 +67,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Public list without a tag passes null")
     void listPublicFilesWithoutTagPassesNull() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<StoredFile> expected = new PageImpl<>(List.of(), pageable, 0);
@@ -75,6 +79,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Own list is delegated to the repository with the owner, the tag and the pageable")
     void listOwnFilesDelegatesWithOwnerTagAndPageable() {
         Pageable pageable = PageRequest.of(1, 7, Sort.by("size").descending());
         Page<StoredFile> expected = new PageImpl<>(List.of(), pageable, 0);
@@ -88,6 +93,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Own list without a tag passes null")
     void listOwnFilesWithoutTagPassesNull() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<StoredFile> expected = new PageImpl<>(List.of(), pageable, 0);
@@ -99,6 +105,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Own list asks only for the given owner and never for the public list")
     void listOwnFilesAsksOnlyForTheGivenOwner() {
         Pageable pageable = PageRequest.of(0, 20);
         when(fileQueryRepository.findOwn(anyString(), any(), any()))
@@ -111,6 +118,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Download returns the file and its content stream")
     void downloadReturnsFileAndItsContentStream() {
         StoredFile file = create();
         InputStream stream = new ByteArrayInputStream("hello".getBytes(UTF_8));
@@ -124,6 +132,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Download with an unknown token fails without opening any content")
     void downloadOfUnknownTokenFailsWithoutOpeningContent() {
         when(fileQueryRepository.findReadyByToken(TOKEN)).thenReturn(Optional.empty());
 
@@ -134,6 +143,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Download opens the content of the found file")
     @SuppressWarnings("resource")
     void downloadOpensContentOfTheFoundFile() {
         when(fileQueryRepository.findReadyByToken(TOKEN)).thenReturn(Optional.of(create()));
@@ -145,6 +155,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Download of a record without content is reported as missing content, not as a missing link")
     void downloadOfRecordWithoutContentIsNotReportedAsMissingLink() {
         when(fileQueryRepository.findReadyByToken(TOKEN)).thenReturn(Optional.of(create()));
         when(fileContentRepository.download(CONTENT_ID)).thenThrow(new ContentNotFoundException(CONTENT_ID));
@@ -154,6 +165,7 @@ class FileQueryServiceTest {
     }
 
     @Test
+    @DisplayName("Download error message does not reveal the token")
     void downloadErrorMessageDoesNotRevealTheToken() {
         when(fileQueryRepository.findReadyByToken(TOKEN)).thenReturn(Optional.empty());
 

@@ -12,6 +12,7 @@ import com.teletronics.storage.mapper.FileDocumentMapperImpl;
 import com.teletronics.storage.repository.FileMetadataRepository;
 import com.teletronics.storage.repository.FileMetadataRepositoryContractTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
+@DisplayName("Mongo file metadata repository")
 @DataMongoTest
 @Import({
         TestcontainersConfiguration.class,
@@ -58,6 +60,7 @@ class MongoFileMetadataRepositoryTest extends FileMetadataRepositoryContractTest
     }
 
     @Test
+    @DisplayName("Reserved record is persisted as PENDING with its metadata")
     void persistsReservedRecord() {
         StoredFile file = repository().reserve(
                 new FileReservation("user-" + UUID.randomUUID(), "report.pdf", Visibility.PRIVATE, Set.of("work")));
@@ -75,6 +78,7 @@ class MongoFileMetadataRepositoryTest extends FileMetadataRepositoryContractTest
     }
 
     @Test
+    @DisplayName("Completed record is persisted as READY with its content data")
     void persistsCompletedRecord() {
         StoredFile pending = repository().reserve(
                 new FileReservation("user-" + UUID.randomUUID(), "report.pdf", Visibility.PRIVATE, Set.of()));

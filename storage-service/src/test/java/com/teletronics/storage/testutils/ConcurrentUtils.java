@@ -15,8 +15,21 @@ import lombok.experimental.UtilityClass;
 
 import static org.awaitility.Awaitility.await;
 
+/**
+ * Helpers for tests that run code concurrently or depend on the clock.
+ */
 @UtilityClass
 public class ConcurrentUtils {
+    /**
+     * Runs the task in {@code count} threads that all start at the same moment,
+     * to provoke races, and collects the results.
+     *
+     * @param count number of threads, and of task runs
+     * @param task  the task to run in every thread
+     * @param <T>   result type of the task
+     * @return the results of all runs, in thread submission order
+     * @throws Exception if a run fails, or does not finish within 30 seconds
+     */
     public static <T> List<T> runConcurrently(int count, Callable<T> task) throws Exception {
         try (ExecutorService executor = Executors.newFixedThreadPool(count)) {
             CountDownLatch start = new CountDownLatch(1);
@@ -36,6 +49,13 @@ public class ConcurrentUtils {
         }
     }
 
+    /**
+     * Waits until the clock, at millisecond precision, is strictly after the given moment.
+     * Guarantees that the next {@code Instant.now()} differs from it once truncated to milliseconds,
+     * as MongoDB stores dates with that precision. Gives up after one second.
+     *
+     * @param moment the moment the clock has to pass
+     */
     public static void awaitClockAfter(Instant moment) {
         await().pollDelay(Duration.ZERO)
                 .pollInterval(Duration.ofMillis(1))

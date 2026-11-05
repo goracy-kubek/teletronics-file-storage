@@ -4,6 +4,7 @@ import com.teletronics.storage.domain.*;
 import com.teletronics.storage.exception.DuplicateFileException;
 import com.teletronics.storage.exception.OwnedFileNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -17,10 +18,7 @@ import static com.teletronics.storage.testutils.ConcurrentUtils.runConcurrently;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Contract of {@link FileMetadataRepository#reserve}, independent of the implementation.
- * Every implementation gets a subclass that provides the repository under test.
- */
+@DisplayName("File metadata repository contract")
 public abstract class FileMetadataRepositoryContractTest {
 
     /** The implementation under test. */
@@ -37,6 +35,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Reserve rejects a filename held by a PENDING record")
     void rejectsFilenameOfPendingRecord() {
         FileMetadataRepository repository = repository();
         repository.reserve(reservation("report.pdf"));
@@ -50,6 +49,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Reserve allows the same filename for different owners")
     void allowsSameFilenameForDifferentOwners() {
         String otherOwner = "user-" + UUID.randomUUID();
 
@@ -63,6 +63,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Reserve creates a PENDING record")
     void createsPendingRecord() {
         Instant before = Instant.now();
 
@@ -82,6 +83,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Reserve turns missing tags into an empty set")
     void emptyTagsBecomeEmptySet() {
         StoredFile file = repository().reserve(
                 new FileReservation(owner, "no-tags.txt", Visibility.PUBLIC, Set.of()));
@@ -90,6 +92,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Reserve rejects a filename held by a READY record")
     void rejectsFilenameOfReadyRecord() {
         FileMetadataRepository repository = repository();
         StoredFile existing = repository.reserve(reservation("report.pdf"));
@@ -106,6 +109,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Filenames are case-sensitive")
     void filenamesAreCaseSensitive() {
         repository().reserve(reservation("report.pdf"));
 
@@ -116,6 +120,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("PENDING records of one owner with different filenames do not conflict")
     void pendingRecordsDoNotConflict() {
         repository().reserve(reservation("first.txt"));
         repository().reserve(reservation("second.txt"));
@@ -124,6 +129,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Concurrent reservations of the same filename: only one succeeds")
     void concurrentReservationsWithSameFilename() throws Exception {
         int threads = 10;
         FileMetadataRepository repository = repository();
@@ -144,6 +150,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Complete turns a PENDING record into a READY one")
     void completesPendingRecord() {
         StoredFile pending = repository().reserve(new FileReservation(
                 owner,
@@ -177,6 +184,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Complete rejects the same content for the same owner")
     void rejectsSameContentForSameOwner() {
         StoredFile first = repository().reserve(reservation("first.txt"));
         StoredFile second = repository().reserve(reservation("second.txt"));
@@ -192,6 +200,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rejected complete leaves the record PENDING and unchanged")
     void leavesRecordUntouchedWhenRejected() {
         StoredFile first = repository().reserve(reservation("first.txt"));
         StoredFile second = repository().reserve(reservation("second.txt"));
@@ -210,6 +219,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Complete allows the same content for different owners")
     void allowsSameContentForDifferentOwners() {
         String otherOwner = "user-" + UUID.randomUUID();
         StoredFile mine = repository().reserve(reservation("report.pdf"));
@@ -224,6 +234,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Complete fails for an unknown id")
     void failsForUnknownId() {
         FileMetadataRepository repo = repository();
         StoredContent stored = content("some-sha");
@@ -235,6 +246,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("A record cannot be completed twice")
     void cannotCompleteTwice() {
         StoredFile file = repository().reserve(reservation("report.pdf"));
         repository().complete(file.id(), content("first-sha"), "token-1-" + owner);
@@ -251,6 +263,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Concurrent completions with the same content: only one succeeds")
     void concurrentCompletionsWithSameContent() throws Exception {
         int threads = 10;
         Queue<String> pendingIds = new ConcurrentLinkedQueue<>();
@@ -273,6 +286,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Discard removes a PENDING record and frees its filename")
     void discardsPendingRecordAndFreesFilename() {
         StoredFile pending = repository().reserve(reservation("report.pdf"));
         assertThat(countRecords(owner)).isEqualTo(1);
@@ -285,6 +299,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Discard does not remove a READY record")
     void doesNotDiscardReadyRecord() {
         StoredFile file = repository().reserve(reservation("report.pdf"));
         repository().complete(file.id(), content("sha-" + owner), "token-" + owner);
@@ -296,6 +311,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Discarding an unknown id does nothing")
     void discardOfUnknownIdDoesNothing() {
         repository().reserve(reservation("report.pdf"));
 
@@ -305,6 +321,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Discarding twice is allowed")
     void discardIsIdempotent() {
         StoredFile pending = repository().reserve(reservation("report.pdf"));
         repository().discard(pending.id());
@@ -316,6 +333,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Delete removes a READY file of the owner and returns it")
     void deletesReadyFileOfOwnerAndReturnsIt() {
         StoredFile file = create("report.pdf");
         assertThat(countRecords(owner)).isEqualTo(1);
@@ -328,6 +346,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Delete does not remove a file of another owner")
     void doesNotDeleteFileOfAnotherOwner() {
         StoredFile file = create("report.pdf");
         FileMetadataRepository repo = repository();
@@ -342,6 +361,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Delete does not remove a PENDING record")
     void doesNotDeletePendingRecord() {
         StoredFile pending = repository().reserve(reservation("report.pdf"));
         FileMetadataRepository repo = repository();
@@ -355,6 +375,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Delete fails for an unknown id")
     void deleteOfUnknownIdFails() {
         create("report.pdf");
         FileMetadataRepository repo = repository();
@@ -368,6 +389,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Deleted file frees its filename and content")
     void deletedFileFreesFilenameAndContent() {
         StoredFile file = repository().reserve(reservation("report.pdf"));
         repository().complete(file.id(), content("same-sha"), "token-1-" + owner);
@@ -380,6 +402,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Deleting the same file twice fails the second time")
     void secondDeleteFails() {
         StoredFile file = create("report.pdf");
         FileMetadataRepository repo = repository();
@@ -392,6 +415,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Concurrent deletes of the same file: only one succeeds")
     void concurrentDeletesOfSameFileSucceedOnce() throws Exception {
         int threads = 10;
         FileMetadataRepository repository = repository();
@@ -413,6 +437,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename changes only the filename of a READY file")
     void renamesReadyFileAndKeepsEverythingElse() {
         StoredFile file = create("old.pdf");
 
@@ -429,6 +454,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename frees the old filename and takes the new one")
     void renameFreesOldFilenameAndTakesNewOne() {
         StoredFile file = create("old.pdf");
         repository().rename(file.id(), owner, "new.pdf");
@@ -443,6 +469,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename to a filename of another file of the same owner fails")
     void renameToFilenameOfAnotherFileOfSameOwnerFails() {
         StoredFile first = create("first.pdf");
         create("second.pdf");
@@ -460,6 +487,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename to a filename used by another owner is allowed")
     void renameToFilenameUsedByAnotherOwnerIsAllowed() {
         String otherOwner = "user-" + UUID.randomUUID();
         repository().reserve(new FileReservation(otherOwner, "shared.pdf", Visibility.PUBLIC, Set.of()));
@@ -471,6 +499,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename to the file's own current filename succeeds")
     void renameToOwnCurrentFilenameSucceeds() {
         StoredFile file = create("same.pdf");
 
@@ -480,6 +509,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename does not change a file of another owner")
     void doesNotRenameFileOfAnotherOwner() {
         StoredFile file = create("report.pdf");
         FileMetadataRepository repo = repository();
@@ -495,6 +525,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename does not change a PENDING record")
     void doesNotRenamePendingRecord() {
         StoredFile pending = repository().reserve(reservation("report.pdf"));
         FileMetadataRepository repo = repository();
@@ -506,6 +537,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Rename fails for an unknown id")
     void renameOfUnknownIdFails() {
         create("report.pdf");
         FileMetadataRepository repo = repository();
@@ -517,6 +549,7 @@ public abstract class FileMetadataRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Concurrent renames to the same filename: only one succeeds")
     void concurrentRenamesToSameFilenameSucceedOnce() throws Exception {
         int threads = 10;
         FileMetadataRepository repository = repository();

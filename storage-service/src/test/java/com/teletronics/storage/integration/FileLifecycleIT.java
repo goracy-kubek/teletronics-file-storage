@@ -7,6 +7,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -19,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FileLifecycleIT extends IntegrationTest {
     private static final String USER_ID_HEADER = "X-User-Id";
 
-    /** An uploaded file is returned in the owner's list with the metadata given at upload. */
     @Test
+    @DisplayName("Uploaded file appears in the owner's list with the metadata given at upload")
     void uploadedFileAppearsInOwnList() throws Exception {
         String user = "user-" + UUID.randomUUID();
 
@@ -47,11 +48,8 @@ class FileLifecycleIT extends IntegrationTest {
         assertThat(JsonPath.<String>read(list.body(), "$.content[0].downloadUrl")).startsWith("/download/");
     }
 
-    /**
-     * A file can be uploaded, listed and downloaded by its link with the same content.
-     * After deletion it is gone from the list and the link returns 404.
-     */
     @Test
+    @DisplayName("File is uploaded, listed and downloaded by its link; after delete it is gone and the link returns 404")
     void uploadFetchAndDelete() throws Exception {
         String user = "user-" + UUID.randomUUID();
         byte[] data = "hello".getBytes(UTF_8);

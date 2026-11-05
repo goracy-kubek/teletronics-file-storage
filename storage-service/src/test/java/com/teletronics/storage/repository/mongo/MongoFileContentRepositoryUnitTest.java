@@ -2,6 +2,7 @@ package com.teletronics.storage.repository.mongo;
 
 import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.client.gridfs.model.GridFSFile;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@DisplayName("Mongo file content repository (unit)")
 @ExtendWith(MockitoExtension.class)
 class MongoFileContentRepositoryUnitTest {
 
@@ -31,6 +33,7 @@ class MongoFileContentRepositoryUnitTest {
     private MongoFileContentRepository repository;
 
     @Test
+    @DisplayName("Download wraps an IOException of the resource in UncheckedIOException")
     @SuppressWarnings("resource")
     void downloadWrapsIOExceptionOfTheResourceInUncheckedIOException() throws IOException {
         GridFSFile file = mock(GridFSFile.class);

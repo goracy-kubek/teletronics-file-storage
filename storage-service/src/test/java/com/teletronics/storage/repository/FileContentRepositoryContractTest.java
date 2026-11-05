@@ -2,6 +2,7 @@ package com.teletronics.storage.repository;
 
 import com.teletronics.storage.exception.ContentNotFoundException;
 import com.teletronics.storage.helpers.FailingInputStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 
+@DisplayName("File content repository contract")
 public abstract class FileContentRepositoryContractTest {
 
     /** The implementation under test. */
@@ -26,6 +28,7 @@ public abstract class FileContentRepositoryContractTest {
     protected abstract boolean exists(String contentId);
 
     @Test
+    @DisplayName("Stores bytes unchanged")
     void storesBytesUnchanged() throws Exception {
         byte[] data = randomBytes(10_000);
 
@@ -35,6 +38,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Stores content larger than one chunk")
     void storesContentLargerThanOneChunk() throws Exception {
         byte[] data = randomBytes(1024 * 1024);
 
@@ -44,6 +48,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Each store call creates new content")
     void eachCallCreatesNewContent() throws Exception {
         byte[] data = randomBytes(100);
 
@@ -54,6 +59,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Deletes stored content")
     void deletesStoredContent() throws Exception {
         String id = repository().store(new ByteArrayInputStream(randomBytes(100)));
         assertThat(exists(id)).isTrue();
@@ -64,6 +70,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Delete does not affect other content")
     void deleteDoesNotAffectOtherContent() throws Exception {
         byte[] kept = randomBytes(100);
         String keptId = repository().store(new ByteArrayInputStream(kept));
@@ -75,6 +82,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Deleting twice is allowed")
     void deleteIsIdempotent() throws Exception {
         String id = repository().store(new ByteArrayInputStream(randomBytes(100)));
         repository().delete(id);
@@ -85,6 +93,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Deleting an unknown id does nothing")
     void deleteOfUnknownIdDoesNothing() {
         FileContentRepository repo = repository();
 
@@ -92,6 +101,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Opens stored content")
     void opensStoredContent() throws Exception {
         byte[] data = randomBytes(10_000);
         String id = repository().store(new ByteArrayInputStream(data));
@@ -102,6 +112,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Content can be opened repeatedly")
     void contentCanBeOpenedRepeatedly() throws Exception {
         byte[] data = randomBytes(1_000);
         String id = repository().store(new ByteArrayInputStream(data));
@@ -111,6 +122,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Each open returns an independent stream from the first byte")
     void eachOpenReturnsIndependentStreamFromFirstByte() throws Exception {
         byte[] data = randomBytes(1024 * 1024);
         String id = repository().store(new ByteArrayInputStream(data));
@@ -126,6 +138,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Opening does not affect other content")
     void openDoesNotAffectOtherContent() throws Exception {
         byte[] first = randomBytes(100);
         byte[] second = randomBytes(200);
@@ -137,6 +150,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Opening deleted content fails")
     @SuppressWarnings("resource")
     void openOfDeletedContentFails() throws Exception {
         String id = repository().store(new ByteArrayInputStream(randomBytes(100)));
@@ -148,6 +162,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @ParameterizedTest
+    @DisplayName("Opening content with unknown id fails: \"{0}\"")
     @ValueSource(strings = {"000000000000000000000000", "not-an-id", ""})
     @SuppressWarnings("resource")
     void openOfUnknownIdFails(String unknownId) {
@@ -159,6 +174,7 @@ public abstract class FileContentRepositoryContractTest {
     }
 
     @Test
+    @DisplayName("Interrupted stream throws IOException")
     @SuppressWarnings("resource")
     void interruptedStreamThrowsIOException() {
         FileContentRepository repo = repository();
