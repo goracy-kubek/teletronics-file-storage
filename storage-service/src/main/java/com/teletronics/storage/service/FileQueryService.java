@@ -6,11 +6,13 @@ import com.teletronics.storage.exception.DownloadLinkNotFoundException;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileQueryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileQueryService {
@@ -27,13 +29,17 @@ public class FileQueryService {
      */
     public DownloadableFile download(String token) {
         return fileQueryRepository.findReadyByToken(token)
-                .map(file -> new DownloadableFile(file, fileContentRepository.download(file.contentId())))
+                .map(file -> {
+                    log.debug("Download: fileId={}, ownerId={}", file.id(), file.ownerId());
+                    return new DownloadableFile(file, fileContentRepository.download(file.contentId()));
+                })
                 .orElseThrow(DownloadLinkNotFoundException::new);
     }
 
     /**
      * Lists all READY files of the owner, both PUBLIC and PRIVATE.
      *
+     * @param ownerId  id of the user who owns the files
      * @param tag      optional exact tag filter, case-insensitive
      * @param pageable page, size and sort
      */

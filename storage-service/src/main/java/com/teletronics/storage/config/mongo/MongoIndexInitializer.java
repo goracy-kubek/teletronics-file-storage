@@ -1,6 +1,7 @@
 package com.teletronics.storage.config.mongo;
 
 import com.teletronics.storage.domain.FileDocument;
+import com.teletronics.storage.domain.FileStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.data.domain.Sort;
@@ -15,7 +16,6 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 /**
  * Creates the unique indexes on the {@code files} collection that enforce the duplicate rules.
  * Runs once all beans are created, before the web server starts accepting requests.
- * Index creation is idempotent: existing indexes are left as they are.
  */
 @Component
 @RequiredArgsConstructor
@@ -40,8 +40,7 @@ public class MongoIndexInitializer implements SmartInitializingSingleton {
 
     /**
      * One filename per owner ("Filename already exists").
-     * Not partial: the filename is set from the start, so it is reserved already while PENDING.
-     * Different owners may use the same filename.
+     * Not partial: the filename is set from the start, so it is reserved already while {@link FileStatus#PENDING}
      */
     private static void createFilenameIndex(IndexOperations files) {
         files.createIndex(new Index()
@@ -53,7 +52,7 @@ public class MongoIndexInitializer implements SmartInitializingSingleton {
 
     /**
      * One content per owner
-     * Partial: PENDING records have no hash yet and must not conflict with each other.
+     * Partial: {@link FileStatus#PENDING} records have no hash yet and must not conflict with each other.
      */
     private static void createContentIndex(IndexOperations files) {
         files.createIndex(new Index()
@@ -66,7 +65,7 @@ public class MongoIndexInitializer implements SmartInitializingSingleton {
 
     /**
      * Fast lookup of a file by its download link; a token never points to two files.
-     * Unique across all owners. Partial: PENDING records have no token yet.
+     * Unique across all owners. Partial: {@link FileStatus#PENDING} records have no token yet.
      */
     private static void createDownloadTokenIndex(IndexOperations files) {
         files.createIndex(new Index()

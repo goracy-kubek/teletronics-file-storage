@@ -4,6 +4,7 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 import com.teletronics.storage.exception.ContentNotFoundException;
 import com.teletronics.storage.repository.FileContentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.stereotype.Repository;
 import com.mongodb.MongoGridFSException;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class MongoFileContentRepository implements FileContentRepository {
@@ -39,9 +41,12 @@ public class MongoFileContentRepository implements FileContentRepository {
 
     @Override
     public void delete(String contentId) {
-        if (ObjectId.isValid(contentId)) {
-            gridFsTemplate.delete(query(where("_id").is(new ObjectId(contentId))));
+        if (!ObjectId.isValid(contentId)) {
+            log.debug("Skipping delete of content with invalid id: {}", contentId);
+            return;
         }
+
+        gridFsTemplate.delete(query(where("_id").is(new ObjectId(contentId))));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.teletronics.storage.service.command;
 
+import com.teletronics.storage.domain.UploadCommand;
 import com.teletronics.storage.domain.Visibility;
 import com.teletronics.storage.exception.InvalidUploadException;
 import org.junit.jupiter.api.Test;

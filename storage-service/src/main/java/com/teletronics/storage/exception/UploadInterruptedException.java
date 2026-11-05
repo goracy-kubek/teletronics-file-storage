@@ -1,7 +1,9 @@
 package com.teletronics.storage.exception;
 
 /**
- * Thrown when an upload cannot be completed because reading or storing the content failed.
+ * Thrown when an upload cannot be completed because reading or storing the content failed,
+ * for example when the client disconnects midway.
+ * Reported as HTTP 400.
  */
 public class UploadInterruptedException extends RuntimeException {
 

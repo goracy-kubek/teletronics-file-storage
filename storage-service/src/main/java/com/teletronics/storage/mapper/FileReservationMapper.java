@@ -1,7 +1,7 @@
 package com.teletronics.storage.mapper;
 
 import com.teletronics.storage.domain.FileReservation;
-import com.teletronics.storage.service.command.UploadCommand;
+import com.teletronics.storage.domain.UploadCommand;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 

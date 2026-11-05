@@ -11,7 +11,7 @@ import com.teletronics.storage.exception.UploadInterruptedException;
 import com.teletronics.storage.mapper.FileResponseMapper;
 import com.teletronics.storage.service.FileCommandService;
 import com.teletronics.storage.service.FileQueryService;
-import com.teletronics.storage.service.command.UploadCommand;
+import com.teletronics.storage.domain.UploadCommand;
 import com.teletronics.storage.utils.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -72,7 +72,7 @@ public class FileController implements FilesApi {
 
     @Override
     public ResponseEntity<Void> deleteFile(String xUserId, String fileId) {
-        fileCommandService.deleteFile(xUserId, fileId);
+        fileCommandService.delete(xUserId, fileId);
         return ResponseEntity.noContent().build();
     }
 
@@ -82,7 +82,7 @@ public class FileController implements FilesApi {
             String fileId,
             RenameRequest renameRequest
     ) {
-        StoredFile renamed = fileCommandService.renameFile(xUserId, fileId, renameRequest.getFilename());
+        StoredFile renamed = fileCommandService.rename(xUserId, fileId, renameRequest.getFilename());
         return ResponseEntity.ok(fileResponseMapper.toResponse(renamed));
     }
 

@@ -10,9 +10,10 @@ import com.teletronics.storage.helper.CountingInputStream;
 import com.teletronics.storage.mapper.FileReservationMapper;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileMetadataRepository;
-import com.teletronics.storage.service.command.UploadCommand;
+import com.teletronics.storage.domain.UploadCommand;
 import com.teletronics.storage.utils.FileUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -23,14 +24,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileCommandService {
+    private static final int BUFFER_SIZE = 64 * 1024;
+
     private final FileContentRepository fileContentRepository;
     private final FileMetadataRepository fileMetadataRepository;
     private final FileReservationMapper fileReservationMapper;
-
-    private static final int BUFFER_SIZE = 64 * 1024;
 
     /**
      * Changes the filename of a file of the owner. Only the record changes, the content is not touched.
@@ -43,7 +45,7 @@ public class FileCommandService {
      *                                    (missing, still uploading or owned by another user)
      * @throws DuplicateFileException     if the owner already has a file with this filename
      */
-    public StoredFile renameFile(String ownerId, String fileId, String newFilename) {
+    public StoredFile rename(String ownerId, String fileId, String newFilename) {
         return fileMetadataRepository.rename(fileId, ownerId, newFilename);
     }
 
@@ -58,9 +60,10 @@ public class FileCommandService {
      * @throws OwnedFileNotFoundException if the file is not found among the READY files of this owner
      *                                    (missing, still uploading or owned by another user)
      */
-    public void deleteFile(String ownerId, String fileId) {
+    public void delete(String ownerId, String fileId) {
         StoredFile deleted = fileMetadataRepository.deleteOwned(fileId, ownerId);
         fileContentRepository.delete(deleted.contentId());
+        log.info("Deleted file: fileId={}, ownerId={}", fileId, ownerId);
     }
 
     /**
@@ -82,7 +85,10 @@ public class FileCommandService {
         var content = storeContent(uploadCommand, body, pending);
 
         try {
-            return fileMetadataRepository.complete(pending.id(), content, FileUtils.newDownloadToken());
+            var completed = fileMetadataRepository.complete(pending.id(), content, FileUtils.newDownloadToken());
+            log.info("Uploaded file: fileId={}, ownerId={}, size={}", completed.id(), completed.ownerId(), completed.size());
+
+            return completed;
         } catch (DuplicateFileException e) {
             fileMetadataRepository.discard(pending.id());
             fileContentRepository.delete(content.contentId());

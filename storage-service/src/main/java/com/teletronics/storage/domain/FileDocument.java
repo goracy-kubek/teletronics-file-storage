@@ -43,10 +43,13 @@ public class FileDocument {
     /** Up to 5 tags, normalized to lower case. */
     Set<String> tags;
 
-    /** MIME type provided by the user or detected from the content after upload. */
+    /**
+     * MIME type provided by the user or detected from the content after upload.
+     * Absent while the upload is in progress.
+     */
     String contentType;
 
-    /** Content size in bytes. */
+    /** Content size in bytes. 0 while the upload is in progress. */
     long size;
 
     /**
@@ -67,6 +70,9 @@ public class FileDocument {
     /** Id of the content in GridFS. Absent while the upload is in progress. */
     String contentId;
 
-    /** Upload state: PENDING while content is being uploaded, READY when the file is available. */
+    /**
+     * Upload state: {@link FileStatus#PENDING} while content is being uploaded,
+     * {@link FileStatus#READY} when the file is available.
+     */
     FileStatus status;
 }

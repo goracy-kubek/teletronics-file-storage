@@ -36,6 +36,7 @@ public class MongoFileMetadataRepository implements FileMetadataRepository {
         try {
             return fileDocumentMapper.toDomain(mongoTemplate.insert(fileDocumentMapper.toDocument(reservation)));
         } catch (DuplicateKeyException _) {
+            log.debug("Filename already exists: filename={}", reservation.filename());
             throw new DuplicateFileException("filename already exists");
         }
     }
@@ -55,8 +56,8 @@ public class MongoFileMetadataRepository implements FileMetadataRepository {
                     FindAndModifyOptions.options().returnNew(true),
                     FileDocument.class
             );
-        } catch (DuplicateKeyException e) {
-            log.debug("Same content already uploaded: fileId={}", fileId, e);
+        } catch (DuplicateKeyException _) {
+            log.debug("Same content already uploaded: fileId={}", fileId);
             throw new DuplicateFileException("same content already uploaded");
         }
     }
@@ -99,8 +100,8 @@ public class MongoFileMetadataRepository implements FileMetadataRepository {
             return Optional.ofNullable(findAndRename(fileId, ownerId, newFilename))
                     .map(fileDocumentMapper::toDomain)
                     .orElseThrow(() -> new OwnedFileNotFoundException(fileId, ownerId));
-        } catch (DuplicateKeyException e) {
-            log.debug("Filename already exists: fileId={}", fileId, e);
+        } catch (DuplicateKeyException _) {
+            log.debug("Filename already exists: fileId={}", fileId);
             throw new DuplicateFileException("filename already exists");
         }
     }

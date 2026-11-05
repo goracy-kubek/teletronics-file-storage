@@ -11,14 +11,15 @@ import java.util.Set;
  * @param ownerId       id of the user who uploaded the file
  * @param filename      filename, unique per owner
  * @param visibility    whether the file appears in the public list
- * @param tags          normalized tags, at most 5
- * @param contentType   MIME type, provided or detected; {@code null} while PENDING
- * @param size          content size in bytes; 0 while PENDING
- * @param sha256        hex-encoded SHA-256 of the content, unique per owner; {@code null} while PENDING
- * @param uploadDate    time when the upload was started
- * @param downloadToken random token of the download link; {@code null} while PENDING
- * @param contentId     id of the content in the content repository; {@code null} while PENDING
- * @param status        PENDING while uploading, READY when available
+ * @param tags          normalized tags, at most 5; empty if none
+ * @param contentType   MIME type, provided or detected; {@code null} while {@link FileStatus#PENDING}
+ * @param size          content size in bytes; 0 while {@link FileStatus#PENDING}
+ * @param sha256        hex-encoded SHA-256 of the content, unique per owner;
+ *                      {@code null} while {@link FileStatus#PENDING}
+ * @param uploadDate    time when the upload was started: set when the filename is reserved
+ * @param downloadToken random token of the download link; {@code null} while {@link FileStatus#PENDING}
+ * @param contentId     id of the content in the content repository; {@code null} while {@link FileStatus#PENDING}
+ * @param status        {@link FileStatus#PENDING} while uploading, {@link FileStatus#READY} when available
  */
 public record StoredFile(
         String id,

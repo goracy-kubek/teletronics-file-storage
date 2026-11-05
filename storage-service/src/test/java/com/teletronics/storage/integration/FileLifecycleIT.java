@@ -12,15 +12,21 @@ import org.junit.jupiter.api.Test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * End-to-end tests of a file's life through the HTTP API: upload, listing, download and delete.
+ * Each test uses its own random user, so tests do not affect each other.
+ */
 class FileLifecycleIT extends IntegrationTest {
+    private static final String USER_ID_HEADER = "X-User-Id";
 
+    /** An uploaded file is returned in the owner's list with the metadata given at upload. */
     @Test
     void uploadedFileAppearsInOwnList() throws Exception {
         String user = "user-" + UUID.randomUUID();
 
         HttpResponse<String> uploaded = send(
                 HttpRequest.newBuilder(uri("/api/files?filename=hello.txt&visibility=PRIVATE&tags=work"))
-                        .header("X-User-Id", user)
+                        .header(USER_ID_HEADER, user)
                         .header("Content-Type", "application/octet-stream")
                         .POST(HttpRequest.BodyPublishers.ofByteArray("hello".getBytes(UTF_8))),
                 HttpResponse.BodyHandlers.ofString());
@@ -28,7 +34,7 @@ class FileLifecycleIT extends IntegrationTest {
         String id = JsonPath.read(uploaded.body(), "$.id");
 
         HttpResponse<String> list = send(
-                HttpRequest.newBuilder(uri("/api/files")).header("X-User-Id", user).GET(),
+                HttpRequest.newBuilder(uri("/api/files")).header(USER_ID_HEADER, user).GET(),
                 HttpResponse.BodyHandlers.ofString());
 
         assertThat(list.statusCode()).isEqualTo(200);
@@ -41,8 +47,11 @@ class FileLifecycleIT extends IntegrationTest {
         assertThat(JsonPath.<String>read(list.body(), "$.content[0].downloadUrl")).startsWith("/download/");
     }
 
+    /**
+     * A file can be uploaded, listed and downloaded by its link with the same content.
+     * After deletion it is gone from the list and the link returns 404.
+     */
     @Test
-//    @Disabled("Not implemented")
     void uploadFetchAndDelete() throws Exception {
         String user = "user-" + UUID.randomUUID();
         byte[] data = "hello".getBytes(UTF_8);
@@ -50,7 +59,7 @@ class FileLifecycleIT extends IntegrationTest {
         // upload
         HttpResponse<String> uploaded = send(
                 HttpRequest.newBuilder(uri("/api/files?filename=hello.txt&visibility=PRIVATE"))
-                        .header("X-User-Id", user)
+                        .header(USER_ID_HEADER, user)
                         .header("Content-Type", "application/octet-stream")
                         .POST(HttpRequest.BodyPublishers.ofByteArray(data)),
                 HttpResponse.BodyHandlers.ofString());
@@ -60,32 +69,32 @@ class FileLifecycleIT extends IntegrationTest {
 
         // fetch: appears in the own list
         HttpResponse<String> list = send(
-                HttpRequest.newBuilder(uri("/api/files")).header("X-User-Id", user).GET(),
+                HttpRequest.newBuilder(uri("/api/files")).header(USER_ID_HEADER, user).GET(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(list.statusCode()).isEqualTo(200);
         assertThat(JsonPath.<List<String>>read(list.body(), "$.content[*].id")).containsExactly(id);
 
         // fetch: content downloads by the link
         HttpResponse<byte[]> downloaded = send(
-                HttpRequest.newBuilder(uri(link)).header("X-User-Id", user).GET(),
+                HttpRequest.newBuilder(uri(link)).header(USER_ID_HEADER, user).GET(),
                 HttpResponse.BodyHandlers.ofByteArray());
         assertThat(downloaded.statusCode()).isEqualTo(200);
         assertThat(downloaded.body()).isEqualTo(data);
 
         // delete
         HttpResponse<Void> deleted = send(
-                HttpRequest.newBuilder(uri("/api/files/" + id)).header("X-User-Id", user).DELETE(),
+                HttpRequest.newBuilder(uri("/api/files/" + id)).header(USER_ID_HEADER, user).DELETE(),
                 HttpResponse.BodyHandlers.discarding());
         assertThat(deleted.statusCode()).isEqualTo(204);
 
         // gone: not in the list, link no longer works
         HttpResponse<String> listAfter = send(
-                HttpRequest.newBuilder(uri("/api/files")).header("X-User-Id", user).GET(),
+                HttpRequest.newBuilder(uri("/api/files")).header(USER_ID_HEADER, user).GET(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(JsonPath.<List<String>>read(listAfter.body(), "$.content")).isEmpty();
 
         HttpResponse<Void> downloadAfter = send(
-                HttpRequest.newBuilder(uri(link)).header("X-User-Id", user).GET(),
+                HttpRequest.newBuilder(uri(link)).header(USER_ID_HEADER, user).GET(),
                 HttpResponse.BodyHandlers.discarding());
         assertThat(downloadAfter.statusCode()).isEqualTo(404);
     }

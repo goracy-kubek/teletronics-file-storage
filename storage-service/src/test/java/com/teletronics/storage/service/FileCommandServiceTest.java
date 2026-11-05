@@ -8,7 +8,7 @@ import com.teletronics.storage.exception.OwnedFileNotFoundException;
 import com.teletronics.storage.mapper.FileReservationMapper;
 import com.teletronics.storage.repository.FileContentRepository;
 import com.teletronics.storage.repository.FileMetadataRepository;
-import com.teletronics.storage.service.command.UploadCommand;
+import com.teletronics.storage.domain.UploadCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -88,7 +88,7 @@ class FileCommandServiceTest {
     void deleteRemovesRecordThenContent() {
         when(metadata.deleteOwned(FILE_ID, OWNER)).thenReturn(create());
 
-        service.deleteFile(OWNER, FILE_ID);
+        service.delete(OWNER, FILE_ID);
 
         InOrder order = inOrder(metadata, content);
         order.verify(metadata).deleteOwned(FILE_ID, OWNER);
@@ -99,7 +99,7 @@ class FileCommandServiceTest {
     void deleteOfMissingFileLeavesContentAlone() {
         when(metadata.deleteOwned(FILE_ID, OWNER)).thenThrow(new OwnedFileNotFoundException(FILE_ID, OWNER));
 
-        assertThatThrownBy(() -> service.deleteFile(OWNER, FILE_ID))
+        assertThatThrownBy(() -> service.delete(OWNER, FILE_ID))
                 .isInstanceOf(OwnedFileNotFoundException.class);
 
         verifyNoInteractions(content);
@@ -110,7 +110,7 @@ class FileCommandServiceTest {
         StoredFile renamed = create("new.txt");
         when(metadata.rename(FILE_ID, OWNER, "new.txt")).thenReturn(renamed);
 
-        StoredFile result = service.renameFile(OWNER, FILE_ID, "new.txt");
+        StoredFile result = service.rename(OWNER, FILE_ID, "new.txt");
 
         assertThat(result).isSameAs(renamed);
         verifyNoInteractions(content);   // a rename never touches the content
@@ -121,7 +121,7 @@ class FileCommandServiceTest {
         when(metadata.rename(FILE_ID, OWNER, "new.txt"))
                 .thenThrow(new OwnedFileNotFoundException(FILE_ID, OWNER));
 
-        assertThatThrownBy(() -> service.renameFile(OWNER, FILE_ID, "new.txt"))
+        assertThatThrownBy(() -> service.rename(OWNER, FILE_ID, "new.txt"))
                 .isInstanceOf(OwnedFileNotFoundException.class);
     }
 
@@ -130,7 +130,7 @@ class FileCommandServiceTest {
         when(metadata.rename(FILE_ID, OWNER, "taken.txt"))
                 .thenThrow(new DuplicateFileException("filename already exists"));
 
-        assertThatThrownBy(() -> service.renameFile(OWNER, FILE_ID, "taken.txt"))
+        assertThatThrownBy(() -> service.rename(OWNER, FILE_ID, "taken.txt"))
                 .isInstanceOf(DuplicateFileException.class)
                 .hasMessage("filename already exists");
     }

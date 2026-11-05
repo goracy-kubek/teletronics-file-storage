@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    /** Same answer for an unknown link, a missing file and another user's file. */
     @ExceptionHandler({DownloadLinkNotFoundException.class, OwnedFileNotFoundException.class})
     ProblemDetail notFound() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "File not found");
