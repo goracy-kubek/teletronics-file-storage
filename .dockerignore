@@ -1,0 +1,9 @@
+.git
+.idea
+.env
+infrastructure
+storage-service/.gradle
+storage-service/.kotlin
+storage-service/build
+storage-service/buildSrc/build
+storage-service/buildSrc/.gradle
