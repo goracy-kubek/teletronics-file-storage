@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: storage
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/storage}
+
+storage:
+  query:
+    sortable-properties:
+      - filename
+      - uploadDate
+      - contentType
+      - size
+      - tags

@@ -1,0 +1,22 @@
+[versions]
+spring-boot = "4.1.2"
+spring-dependency-management = "1.1.7"
+openapi-generator = "7.27.0"
+webmvc-ui = "3.2.0"
+mapstruct = "1.6.3"
+tika = "4.2.0"
+assertj = "3.27.7"
+lombok-plugin = "9.8.3"
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
+
+[libraries]
+openapi-generator-gradle-plugin = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "webmvc-ui" }
+mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
+tika-core = { module = "org.apache.tika:tika-core", version.ref = "tika" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }

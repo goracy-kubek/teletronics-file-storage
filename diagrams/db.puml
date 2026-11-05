@@ -1,0 +1,58 @@
+@startuml mongodb-schema
+title MongoDB schema: database "storage"
+hide circle
+skinparam linetype ortho
+
+package "File metadata" {
+  entity "files" as files <<collection>> {
+    * _id : ObjectId
+    --
+    * ownerId : String
+    * filename : String
+    * visibility : String  (PUBLIC | PRIVATE)
+    * tags : String[]  (0..5, lower case)
+    * uploadDate : Date
+    * status : String  (PENDING | READY)
+    --
+    contentId : String  <<READY only>>
+    sha256 : String  <<READY only>>
+    size : Long  <<READY only>>
+    contentType : String  <<READY only>>
+    downloadToken : String  <<READY only>>
+  }
+}
+
+package "File content (GridFS, bucket fs)" {
+  entity "fs.files" as gridfiles <<collection>> {
+    * _id : ObjectId
+    --
+    * length : Long
+    * chunkSize : Int  (255 KB)
+    * uploadDate : Date
+    filename : String
+  }
+
+  entity "fs.chunks" as chunks <<collection>> {
+    * _id : ObjectId
+    --
+    * files_id : ObjectId
+    * n : Int  (chunk number)
+    * data : Binary  (≤ 255 KB)
+  }
+}
+
+files "0..1" -right- "1" gridfiles : contentId = _id
+gridfiles "1" -down- "0..*" chunks : _id = files_id
+
+note bottom of files
+  **Indexes**
+  unique {ownerId, filename}
+  unique {ownerId, sha256}, partial: sha256 exists
+  unique {downloadToken}, partial: downloadToken exists
+end note
+
+note bottom of chunks
+  **Indexes** (created by the driver)
+  unique {files_id, n}
+end note
+@enduml

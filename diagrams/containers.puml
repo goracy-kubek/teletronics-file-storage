@@ -1,0 +1,22 @@
+@startuml containers
+!include <C4/C4_Container>
+
+title Container diagram: STORAGE
+
+Person(user, "User", "Any HTTP client. Identified by the X-User-Id header.")
+
+System_Boundary(storage, "STORAGE") {
+  Container(app, "Storage API", "Java, Spring Boot", "REST API. Streams uploads and downloads; never buffers whole files in memory or on local disk.\nDocker: RAM ≤ 1 GB, disk ≤ 200 MB")
+
+  Boundary(mongo, "MongoDB", "single instance, one database") {
+    ContainerDb(meta, "File metadata", "files collection", "Filename, owner, visibility, tags, size, content type, SHA-256, download token, status.\nUnique indexes: no duplicates per user.")
+    ContainerDb(content, "File content", "GridFS: fs.files, fs.chunks", "File bytes in 255 KB chunks.\nBehind the ContentStorage interface.")
+  }
+}
+
+Rel(user, app, "Uploads, renames, lists, deletes, downloads files", "HTTP / REST")
+Rel(app, meta, "Reads and writes metadata", "MongoDB driver")
+Rel(app, content, "Streams file content", "MongoDB driver")
+
+SHOW_LEGEND()
+@enduml

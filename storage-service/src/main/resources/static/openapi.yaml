@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: STORAGE API
+  version: 1.0.0
+  description: |
+    REST API for storing and sharing files of any size.
+
+    Every request must carry the `X-User-Id` header. The service does not manage users,
+    sessions or roles: the id is assumed to be provided by the caller.
+
+    Uploads and downloads are streamed: file content is never buffered whole in memory
+    or on the local disk.
+
+tags:
+  - name: files
+    description: "Use cases: Upload file, Change filename, List files (own / public), Delete own files, Download by link"
+
+paths:
+  /api/files:
+    post:
+      tags: [files]
+      operationId: uploadFile
+      summary: Upload a file
+      description: |
+        The request body is the raw file content (`application/octet-stream`); metadata is passed
+        as query parameters. Chunked transfer encoding is supported, `Content-Length` is not required.
+
+        - The file is rejected as a duplicate if the user already has a file with the same
+          filename **or** the same content (per user, no global uniqueness).
+        - Tags are case-insensitive (`TAG` = `tAg`) and are created on first use.
+        - If `contentType` is not provided, it is identified after upload.
+        - On success, a unique, non-guessable download link is returned.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: filename
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+          example: report.pdf
+        - name: visibility
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Visibility'
+        - name: tags
+          in: query
+          required: false
+          description: Up to 5 tags. Repeat the parameter for each tag (`tags=work&tags=2026`).
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              type: string
+              minLength: 1
+              maxLength: 50
+          example: [work, "2026"]
+        - name: contentType
+          in: query
+          required: false
+          description: MIME type of the file. If omitted, it is identified from the content.
+          schema:
+            type: string
+          example: application/pdf
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    get:
+      tags: [files]
+      operationId: listOwnFiles
+      summary: List own files
+      description: All files of the current user, both PUBLIC and PRIVATE.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/Tag'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: A page of the user's files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/files/public:
+    get:
+      tags: [files]
+      operationId: listPublicFiles
+      summary: List public files
+      description: All PUBLIC files of all users.
+      parameters:
+        - $ref: '#/components/parameters/Tag'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: A page of public files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/files/{fileId}:
+    patch:
+      tags: [files]
+      operationId: renameFile
+      summary: Change filename
+      description: |
+        Changes only the filename;
+        The new filename must not be used by another file of the same user.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/FileId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRequest'
+      responses:
+        '200':
+          description: File renamed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [files]
+      operationId: deleteFile
+      summary: Delete own file
+      description: |
+        Deletes the file and its content. Only the owner can delete a file;
+        for a file of another user the response is 404, so its existence is not disclosed.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '204':
+          description: File deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /download/{token}:
+    get:
+      tags: [files]
+      operationId: downloadFile
+      summary: Download by link
+      description: |
+        Streams the file content. Works for both PUBLIC and PRIVATE files: the token itself
+        grants access, no ownership or visibility check is made.
+        The token is random and non-guessable. Unknown tokens always return 404.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+          headers:
+            Content-Disposition:
+              description: '`attachment; filename*=UTF-8''''<filename>`'
+              schema:
+                type: string
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    UserId:
+      name: X-User-Id
+      in: header
+      required: true
+      description: Id of the calling user. Provided by the caller; not issued by this service.
+      schema:
+        type: string
+        minLength: 1
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      description: Id of file which is used to identify a file.
+      schema:
+        type: string
+    Tag:
+      name: tag
+      in: query
+      required: false
+      description: |
+        Filter by tag. Exact match, case-insensitive (`TAG` = `tAg`).
+        No partial or fuzzy matching: an unknown tag returns an empty page.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 50
+    Sort:
+      name: sort
+      in: query
+      required: false
+      description: '`field,direction`. Fields: filename, uploadDate, tag, contentType, size. Default: `uploadDate,desc`.'
+      schema:
+        type: string
+        pattern: '^(filename|uploadDate|tag|contentType|size)(,(asc|desc))?$'
+        default: uploadDate,desc
+      example: size,desc
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Zero-based page number.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      required: false
+      description: Number of results per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    Visibility:
+      type: string
+      enum: [PUBLIC, PRIVATE]
+
+    FileResponse:
+      type: object
+      required: [id, filename, visibility, tags, contentType, size, uploadDate, downloadUrl]
+      properties:
+        id:
+          type: string
+          example: 6650f1c2a9e4b3d2c1a0f9e8
+        filename:
+          type: string
+          example: report.pdf
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        tags:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+          description: Normalized to lower case.
+          example: [work, "2026"]
+        contentType:
+          type: string
+          example: application/pdf
+        size:
+          type: integer
+          format: int64
+          description: Size in bytes.
+          example: 1048576
+        uploadDate:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          description: Relative download link.
+          example: /download/Kx9vQ2mT7aLpR4nW8bYcE1
+
+    FilePage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    RenameRequest:
+      type: object
+      required: [filename]
+      properties:
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: report-final.pdf
+
+    ProblemDetail:
+      type: object
+      description: Error body (RFC 7807).
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request (missing or invalid parameters, more than 5 tags, missing X-User-Id)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: File not found or not owned by the user; unknown download token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: The user already has a file with the same filename or the same content
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
