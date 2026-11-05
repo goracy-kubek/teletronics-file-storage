@@ -247,6 +247,35 @@ class FileLifecycleIT extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Delete of a file of another user gives 404 and leaves the file listed and downloadable")
+    void deleteOfFileOfAnotherUserGivesNotFound() throws Exception {
+        String owner = "user-" + UUID.randomUUID();
+        String stranger = "user-" + UUID.randomUUID();
+        String body = uploadAndGetBody(owner, "mine.txt", "PUBLIC", "work", "mine");
+        String id = JsonPath.read(body, "$.id");
+        String link = JsonPath.read(body, "$.downloadUrl");
+
+        // delete: a different user tries to delete the file
+        HttpResponse<Void> deleted = send(
+                HttpRequest.newBuilder(uri("/api/files/" + id)).header(USER_ID_HEADER, stranger).DELETE(),
+                HttpResponse.BodyHandlers.discarding());
+        assertThat(deleted.statusCode()).isEqualTo(404);
+
+        // list: the owner still sees the file
+        HttpResponse<String> list = send(
+                HttpRequest.newBuilder(uri("/api/files")).header(USER_ID_HEADER, owner).GET(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(JsonPath.<List<String>>read(list.body(), "$.content[*].id")).containsExactly(id);
+
+        // download: the content is still available by the link
+        HttpResponse<byte[]> downloaded = send(
+                HttpRequest.newBuilder(uri(link)).GET(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(downloaded.statusCode()).isEqualTo(200);
+        assertThat(downloaded.body()).isEqualTo("mine".getBytes(UTF_8));
+    }
+
+    @Test
     @DisplayName("Upload cut off midway gives 400, leaves no file and frees the filename")
     void interruptedUploadGivesBadRequestAndLeavesNoFile() throws Exception {
         String user = "user-" + UUID.randomUUID();
