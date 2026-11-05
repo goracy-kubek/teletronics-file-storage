@@ -48,8 +48,7 @@ note as N_LIST
   • divided into result pages
     with a defined number of results
 end note
-UC_LIST_OWN_FILES .. N_LIST
-UC_LIST_PUBLIC_FILES .. N_LIST
+UC_LIST_FILES .. N_LIST
 
 note right of UC_LINK_DOWNLOADING
   • all files (PRIVATE and PUBLIC)
@@ -61,12 +60,13 @@ UC_UPLOAD ..> UC_GET_A_FILE_LINK : <<include>>
 UC_CHANGE_FILENAME ..> UC_DUP_CHECK : <<include>>\nfilename only
 UC_UPLOAD <.. UC_APP_FILETYPE_IDENTIFICATION : <<extend>>\nif type not provided
 
-UC_LIST_FILES <|-- UC_LIST_OWN_FILES
-UC_LIST_FILES <|-- UC_LIST_PUBLIC_FILES
+UC_LIST_OWN_FILES <|-- UC_LIST_FILES
+UC_LIST_PUBLIC_FILES <|-- UC_LIST_FILES
 
 user --> UC_UPLOAD
 user --> UC_CHANGE_FILENAME
-user --> UC_LIST_FILES
+user --> UC_LIST_OWN_FILES
+user --> UC_LIST_PUBLIC_FILES
 user --> UC_DELETE_OWN_FILES
 user --> UC_LINK_DOWNLOADING
 
